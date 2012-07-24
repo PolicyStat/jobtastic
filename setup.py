@@ -30,6 +30,8 @@ setup(
     platforms=['any'],
     classifiers=CLASSIFIERS,
     install_requires=[
+        'django',
+        'django-celery',
         'celery>=2.5',
     ],
 )

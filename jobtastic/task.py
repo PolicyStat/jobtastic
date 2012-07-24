@@ -18,31 +18,11 @@ from celery.task import Task
 from celery.result import BaseAsyncResult
 from celery.signals import task_prerun, task_postrun
 from djcelery.models import TaskMeta
-from johnny.middleware import QueryCacheMiddleware, LocalStoreClearMiddleware
 
 from django.conf import settings
 from django.core.cache import cache
 
-
-def task_prerun_handler(*args, **kwargs):
-    """
-    Before each Task is ran, we have to instantiate Johnny's query cache
-    monkey patch. This will make sure that any table writes invalidate table
-    caches, and reads pull from any existing caches.
-    """
-    QueryCacheMiddleware()
-task_prerun.connect(task_prerun_handler)
-
-
-def task_postrun_handler(*args, **kwargs):
-    """
-    After each task is ran, the LocalStore cache (similar to threadlocals) is
-    cleared, as is the case with views (instead of celery tasks).
-    """
-    clear_middleware = LocalStoreClearMiddleware()
-    clear_middleware.process_response(None, None)
-task_postrun.connect(task_postrun_handler)
-
+from jobtastic.states import PROGRESS
 
 @contextmanager
 def acquire_lock(lock_name):
@@ -68,8 +48,6 @@ def get_task_meta_error(exception):
     """
     Take an exception and turn it in to a Celery result tombstone that mimics
     what would happen if that error were thrown during a Task run.
-
-    This is copy/pasted from pstat.core.utils
     """
     # Need to return an object that has a uuid attribute, and need to store the
     # result in the cache
@@ -192,7 +170,7 @@ class AwesomeResultTask(Task):
             task_meta = super(AwesomeResultTask, self).delay(
                 *args, **kwargs)
             logging.info('Current status: %s', task_meta.status)
-            if task_meta.status in ['PROGRESS', 'PENDING']:
+            if task_meta.status in [PROGRESS, states.PENDING]:
                 cache.set(
                     'herd:%s' % cache_key,
                     task_meta.task_id,
@@ -256,7 +234,7 @@ class AwesomeResultTask(Task):
                 "progress_percent": progress_percent,
                 "time_remaining": time_remaining,
             },
-            status="PROGRESS")
+            status=PROGRESS)
 
     def run(self, *args, **kwargs):
         self.logger = self.get_logger(**kwargs)
@@ -276,7 +254,7 @@ class AwesomeResultTask(Task):
                     "progress_percent": 0,
                     "time_remaining": -1,
                 },
-                status="PROGRESS",
+                status=PROGRESS,
             )
 
         self.logger.info("Calculating result")

@@ -1,0 +1,4 @@
+include setup.py 
+include AUTHORS CHANGELOG.rst LICENSE MANIFEST.in README.rst
+recursive-include jobtastic *.py
+prune jobtastic/*.pyc

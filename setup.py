@@ -4,7 +4,7 @@ import codecs
 
 from setuptools import setup
 
-long_description = codecs.open("README.rst", "r", "utf-8").read()
+long_description = codecs.open("README.md", "r", "utf-8").read()
 
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',

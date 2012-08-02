@@ -12,7 +12,10 @@ or if your users need to wait while they compute their results.
 Jobtastic gives you goodies like:
 * Easy progress estimation/reporting
 * Job status feedback
-* A jQuery plugin for easy client-side progress display
+* Helper methods for gracefully handling a dead task broker
+  (`delay_or_run` and `delay_or_fail`)
+* A [celery jQuery plugin](https://github.com/PolicyStat/jquery-celery)
+  for easy client-side progress display
 * Result caching
 * [Thundering herd](http://en.wikipedia.org/wiki/Thundering_herd_problem) avoidance
 

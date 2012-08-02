@@ -14,7 +14,7 @@ from uuid import uuid4
 
 from celery import states
 from celery.backends import default_backend
-from celery.task import Task
+from celery import Task
 from celery.result import BaseAsyncResult
 from celery.signals import task_prerun, task_postrun
 from djcelery.models import TaskMeta

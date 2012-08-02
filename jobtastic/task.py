@@ -26,6 +26,15 @@ from jobtastic.states import PROGRESS
 
 @contextmanager
 def acquire_lock(lock_name):
+    """
+    A contextmanager to wait until an exclusive lock is available,
+    hold the lock and then release it when the code under context
+    is complete.
+
+    TODO: This code doesn't work like it should. It doesn't
+    wait indefinitely for the lock and in fact cycles through
+    very quickly.
+    """
     for _ in range(10):
         try:
             value = cache.incr(lock_name)
@@ -46,11 +55,12 @@ def acquire_lock(lock_name):
 
 def get_task_meta_error(exception):
     """
-    Take an exception and turn it in to a Celery result tombstone that mimics
-    what would happen if that error were thrown during a Task run.
+    Take an exception, turn it in to a Celery result tombstone that mimics
+    what would happen if that error were thrown during a Task run,
+    and then store that tombstone in the result backend.
     """
     # Need to return an object that has a uuid attribute, and need to store the
-    # result in the cache
+    # result in the default result backend
     fake_result = TaskMeta()
     task_id = str(uuid4())
     fake_result.task_id = task_id
@@ -277,6 +287,10 @@ class AwesomeResultTask(Task):
         self._break_thundering_herd_cache()
 
         return task_result
+
+    def calculate_result(self, *args, **kwargs):
+        raise NotImplementedError(
+            "Tasks using AwesomeResultTask must implement their own calculate_result")
 
     def _validate_required_class_vars(self):
         """

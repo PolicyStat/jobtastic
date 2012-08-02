@@ -101,6 +101,8 @@ class AwesomeResultTask(Task):
     5. Returning time-based, continually updating progress estimates to
       front-end code so that users know what to expect.
     """
+    abstract = True
+
     def delay_or_run(self, *args, **kwargs):
         """
         Attempt to call self.delay, or if that fails, call self.run.

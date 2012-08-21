@@ -1,7 +1,7 @@
 """
 Celery base task aimed at longish-running jobs that return a result.
 
-``AwesomeResultTask`` adds thundering herd avoidance, result caching, progress
+``JobtasticTask`` adds thundering herd avoidance, result caching, progress
 reporting, error fallback and JSON encoding of results.
 """
 from __future__ import division
@@ -70,12 +70,12 @@ def get_task_meta_error(exception):
     return fake_result
 
 
-class AwesomeResultTask(Task):
+class JobtasticTask(Task):
     """
     A base ``Celery.Task`` class that provides some common niceties for running
     tasks that return some kind of result for which you need to wait.
 
-    To create a task that uses these helpers, use ``AwesomeResultTask`` as a
+    To create a task that uses these helpers, use ``JobtasticTask`` as a
     subclass and define a ``calculate_result`` method which returns a
     dictionary to be turned in to JSON. You will also need to define the
     following class variables:
@@ -179,7 +179,7 @@ class AwesomeResultTask(Task):
         # start the task, ensuring there isn't a race condition that could
         # result in multiple identical tasks being fired at once.
         with acquire_lock('lock:%s' % cache_key):
-            task_meta = super(AwesomeResultTask, self).delay(
+            task_meta = super(JobtasticTask, self).delay(
                 *args, **kwargs)
             logging.info('Current status: %s', task_meta.status)
             if task_meta.status in [PROGRESS, states.PENDING]:
@@ -290,7 +290,7 @@ class AwesomeResultTask(Task):
 
     def calculate_result(self, *args, **kwargs):
         raise NotImplementedError(
-            "Tasks using AwesomeResultTask must implement their own calculate_result")
+            "Tasks using JobtasticTask must implement their own calculate_result")
 
     def _validate_required_class_vars(self):
         """
@@ -306,7 +306,7 @@ class AwesomeResultTask(Task):
         for required_member in required_members:
             if not hasattr(self, required_member):
                 raise Exception(
-                    "AwesomeResultTask's must define a %s" % required_member)
+                    "JobtasticTask's must define a %s" % required_member)
 
     def on_success(self, retval, task_id, args, kwargs):
         """

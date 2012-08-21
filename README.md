@@ -1,12 +1,13 @@
 # jobtastic- Celery tasks plus more awesome
 
-A [Celery](http://celeryproject.org) library
+Jobtastic is a [Celery](http://celeryproject.org) library
 that makes your user-responsive long-running jobs
 totally awesomer.
-Celery is the awesome python job queueing tool
-and jobtastic is a python library (plus javascript)
-that brings some bells and whistles to the table
-that you probably want if the results of your jobs are expensive
+Celery is the ubiquitous python job queueing tool
+and jobtastic is a python library
+that adds useful features to your Celery tasks.
+Specifically, these are features you probably want
+if the results of your jobs are expensive
 or if your users need to wait while they compute their results.
 
 Jobtastic gives you goodies like:
@@ -21,10 +22,10 @@ Jobtastic gives you goodies like:
 
 Make your Celery jobs more awesome with Jobtastic.
 
-## Why jobtastic?
+## Why Jobtastic?
 
-If you have user-facing tasks that someone has to wait for
-after they're triggered, you should try Jobtastic.
+If you have user-facing tasks for which a user must wait,
+you should try Jobtastic.
 It's great for:
 * Complex reports
 * Graph generation
@@ -41,10 +42,82 @@ You could write all of the stuff yourself, but why?
 
 ## Creating Your First Task
 
+Let's take a look at an example task using Jobtastic:
+
+	from jobtastic.task import JobtasticTask
+
+	class LotsOfDivisionTask(JobtasticTask):
+		"""
+		Division is hard. Make Celery do it a bunch.
+		"""
+
+		cache_prefix = 'myapp.tasks.MyTask'
+		significant_kwargs = [
+			('numerators', str),
+			('denominator', str),
+		]
+		herf_avoidance_timeout = 20  # Shouldn't take more than 20 seconds
+		cache_duration = 0  # Cache these results forever. Math is pretty stable.
+
+		def calculate_result(self, numerators, denominators, **kwargs):
+			"""
+			MATH!!!
+			"""
+			results = []
+			divisions_to_do = len(numerators)
+			for count, divisors in enumerate(zip(numerators, denominators)):
+				numerator, denominator = divisors
+				results.append(numerator / denominator)
+				# Let's let everyone know how we're doing
+				self.update_progress(count, divisions_to_do)
+
+			return results
+
+This task is very trivial, but imagine doing something time-consuming instead
+of division and lots and lots of numbers while a user waited. We wouldn't want
+a double-clicker to cause this to happen twice conccurrently, we wouldn't want
+to ever redo this work on the same numbers and we would want the user to have
+at least some idea of how long they'll need to wait. Just by setting those 4
+member variables, we've done all of these things.
+
+Basically, creating a Celery task using Jobtastic is a matter of:
+
+1. Subclassing `jobtastic.task.JobtasticTask`
+2. Defining some required member variables
+3. Writing your `calculate_result` method
+  (instead of the normal Celery `run()` method)
+4. Sprinkling `update_progress()` calls in your `calculate_result()` method
+  to communicate progress
+
+### Required Member Variables
+
+"But wait, Wes. What the heck do those member variables actually do?" You ask.
+
+Firstly. How the heck did you know my name?
+And B, why don't I tell you!
+
+#### cache_prefix
+
+#### significant_kwargs
+
+#### herd_avoidance_timeout
+
+#### cache_duration
+
+### calculate_result
+
+### update_progress
+
+## Using your JobtasticTask
+
+### delay_or_run
+
+### delay_or_fail
+
 ## Client Side Handling
 
 That's all well and good on the server side,
-but the biggest benefit of jobtastic is useful user-facing feedback.
+but the biggest benefit of Jobtastic is useful user-facing feedback.
 That means handling status checks using AJAX in the browser.
 
 The easiest way to get rolling is to use our sister project,
@@ -102,7 +175,7 @@ or to ask the user to retry their task.
 There are occasions where requesting the task status itself might error out.
 This isn't a reflection on the worker itself,
 as it could be caused by any number of application errors.
-In generally, you probably want to try again if this happens,
+In general, you probably want to try again if this happens,
 but if it persists, you'll want to give your user feedback.
 
 ## Is it Awesome?
@@ -112,6 +185,7 @@ Yes. Increasingly so.
 # Non-affiliation
 
 This project isn't affiliated with the awesome folks at the
-[Celery Project](http://www.celeryproject.org).
+[Celery Project](http://www.celeryproject.org)
+(unless having a huge crush counts as affiliation).
 It's a library that the folks at [PolicyStat](http://www.policystat.com)
 have been using internally and decided to open source in the hopes it is useful to others.

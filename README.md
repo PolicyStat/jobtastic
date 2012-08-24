@@ -50,13 +50,16 @@ Let's take a look at an example task using Jobtastic:
 		"""
 		Division is hard. Make Celery do it a bunch.
 		"""
-
-		cache_prefix = 'myapp.tasks.MyTask'
+		# Any unique string works here
+		cache_prefix = 'myapp.tasks.LotsOfDivisionTask'
+		# These are the Task kwargs that matter for caching purposes
 		significant_kwargs = [
 			('numerators', str),
 			('denominator', str),
 		]
+		# How long should we give a task before assuming it has failed?
 		herf_avoidance_timeout = 20  # Shouldn't take more than 20 seconds
+		# How long we want to cache results with identical ``significant_kwargs``
 		cache_duration = 0  # Cache these results forever. Math is pretty stable.
 
 		def calculate_result(self, numerators, denominators, **kwargs):
@@ -74,8 +77,8 @@ Let's take a look at an example task using Jobtastic:
 			return results
 
 This task is very trivial, but imagine doing something time-consuming instead
-of division and lots and lots of numbers while a user waited. We wouldn't want
-a double-clicker to cause this to happen twice conccurrently, we wouldn't want
+of division (or just a ton of division) while a user waited. We wouldn't want
+a double-clicker to cause this to happen twice concurrently, we wouldn't want
 to ever redo this work on the same numbers and we would want the user to have
 at least some idea of how long they'll need to wait. Just by setting those 4
 member variables, we've done all of these things.
@@ -134,8 +137,9 @@ the general pattern is to poll a URL
 with your taskid to get JSON status information
 and then handle the possible states to keep the user informed.
 
-The [celery](https://github.com/PolicyStat/jquery-celery/blob/master/src/celery.js)
-jQuery plugin might be a useful reference, if you're rolling your own.
+The [jquery-celery](https://github.com/PolicyStat/jquery-celery/blob/master/src/celery.js)
+jQuery plugin might still be useful as reference,
+even if you're rolling your own.
 In general, you'll want to handle the following cases:
 
 ### PENDING

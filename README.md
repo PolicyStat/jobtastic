@@ -371,7 +371,19 @@ but if it persists, you'll want to give your user feedback.
 
 Yes. Increasingly so.
 
-# Non-affiliation
+## Project Status
+
+Jobtastic is being in production on a large Django project with RabbitMQ as a
+broker and Memcached as a result backend. If that's your configuration, then
+you're in good shape. For other configurations, there are probably bugs that
+will need to be ironed out. If you're a Flask user, then the cake is absolutely
+a lie. Non-Django support is a major goal, but it currently isn't functional.
+
+Jobtastic is currently known to work with Django 1.3.x and Celery 2.5.x. The
+goal is to support those versions and newer. Please file issues if there are
+problems with newer versions of Django/Celery.
+
+## Non-affiliation
 
 This project isn't affiliated with the awesome folks at the
 [Celery Project](http://www.celeryproject.org)

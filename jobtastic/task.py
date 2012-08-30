@@ -17,6 +17,7 @@ from celery.backends import default_backend
 from celery import Task
 from celery.result import BaseAsyncResult
 from celery.signals import task_prerun, task_postrun
+
 from djcelery.models import TaskMeta
 
 from django.conf import settings

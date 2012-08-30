@@ -11,9 +11,15 @@ CLASSIFIERS = [
     'Development Status :: 4 - Beta',
     'Intended Audience :: Developers',
     'License :: OSI Approved :: BSD License',
-    'Operating System :: OS Independent',
+    'Topic :: System :: Distributed Computing',
+    'Topic :: Software Development :: Object Brokering',
     'Programming Language :: Python',
-    'Topic :: Software Development :: Libraries :: Python Modules',
+    'Programming Language :: Python :: 2.6',
+    'Programming Language :: Python :: 2.7',
+    'Operating System :: OS Independent',
+    'Operating System :: POSIX',
+    'Operating System :: Microsoft :: Windows',
+    'Operating System :: MacOS :: MacOS X',
     'Framework :: Django',
 ]
 
@@ -87,7 +93,7 @@ setup(
     platforms=['any'],
     classifiers=CLASSIFIERS,
     install_requires=[
-        'django',
+        'django>=1.3',
         'django-celery',
         'celery>=2.5',
     ],

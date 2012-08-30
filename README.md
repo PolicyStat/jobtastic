@@ -191,6 +191,26 @@ of the amount of time you expect to wait (after a task starts) for the result.
 If this number is hit, it's assumed that something bad happened to the other
 task run (a worker failed) and we'll start calculating from the start.
 
+### Optional Member Variables
+
+These let you tweak the behavior a bit, but you can usually ignore them
+(assuming you want to cache identical task results forever).
+
+#### cache_duration
+
+If you want your results cached, set this to a positive number of seconds. This
+is the number of seconds for which identical jobs should try to just re-use the
+cached result. The default is -1, meaning don't do any caching. Remember,
+`JobtasticTask` uses your `signficant_kwargs` to determine what is identical.
+
+#### cache_prefix
+
+This is an optional string used to represent tasks that should share cache
+results and thundering herd avoidance. You should almost always not set this,
+and let Jobtastic use the `module.class` name. If you have two different tasks
+that should share caching, or you have some very-odd cache key conflict, then
+you can change this yourself. You probably shouldn't.
+
 ### Method to Override
 
 Other than those two member variables, you'll probably want to actually do
@@ -239,25 +259,6 @@ for count, divisors in enumerate(zip(numerators, denominators)):
 	# Let's let everyone know how we're doing
 	self.update_progress(count, divisions_to_do, update_frequency=10)
 ```
-
-### Optional Member Variables
-
-These let you tweak the behavior a bit, but you can usually ignore them
-(assuming you want to cache identical task results forever).
-
-#### cache_duration
-
-This is the number of seconds for which identical jobs should try to just
-re-use the cached result. The default is 0, meaning cache it forever. Remember,
-`JobtasticTask` uses your `signficant_kwargs` to determine what is identical.
-
-#### cache_prefix
-
-This is an optional string used to represent tasks that should share cache
-results and thundering herd avoidance. You should almost always not set this,
-and let Jobtastic use the `module.class` name. If you have two different tasks
-that should share caching, or you have some very-odd cache key conflict, then
-you can change this yourself. You probably shouldn't.
 
 ## Using your JobtasticTask
 

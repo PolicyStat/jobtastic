@@ -80,8 +80,6 @@ class JobtasticTask(Task):
     dictionary to be turned in to JSON. You will also need to define the
     following class variables:
 
-    * ``cache_prefix`` A unique string representing this task. Eg.
-      ``foo.bar.tasks.BazzTask``
     * ``significant_kwargs`` The kwarg values that will be converted to strings
       and hashed to determine if two versions of the same task are equivalent.
       This is a list of 2-tuples with the first item being the kwarg string and
@@ -91,9 +89,13 @@ class JobtasticTask(Task):
     * ``herd_avoidance_timeout`` Number of seconds to hold a lock on this task
       for other equivalent runs. Generally, this should be set to the longest
       estimated amount of time the task could consume.
+
+    The following class members are optional:
+    * ``cache_prefix`` A unique string representing this task. Eg.
+      ``foo.bar.tasks.BazzTask``
     * ``cache_duration`` The number of seconds for which the result of this
       task should be cached, meaning subsequent equivalent runs will skip
-      computation. Set this to ``-1`` to disable caching.
+      computation. The default is to do no result caching.
 
     Provided are helpers for:
 
@@ -278,9 +280,13 @@ class JobtasticTask(Task):
             self._break_thundering_herd_cache()
             raise  # We can use normal celery exception handling for this
 
-        if self.cache_duration >= 0 and self.task_id is not None:
+        if hasattr(self, 'cache_duration'):
+            cache_duration = self.cache_duration
+        else:
+            cache_duration = -1  # By default, don't cache
+        if cache_duration >= 0 and self.task_id is not None:
             # If we're configured to cache this result, do so.
-            cache.set(self.cache_key, self.task_id, self.cache_duration)
+            cache.set(self.cache_key, self.task_id, cache_duration)
 
         # Now that the task is finished, we can stop all of the thundering herd
         # avoidance
@@ -298,10 +304,8 @@ class JobtasticTask(Task):
         variables.
         """
         required_members = [
-            'cache_prefix',
             'significant_kwargs',
             'herd_avoidance_timeout',
-            'cache_duration',
         ]
         for required_member in required_members:
             if not hasattr(self, required_member):
@@ -334,4 +338,9 @@ class JobtasticTask(Task):
         for significant_kwarg in self.significant_kwargs:
             key, to_str = significant_kwarg
             m.update(to_str(kwargs[key]))
+
+        if hasattr(self, 'cache_prefix'):
+            cache_prefix = self.cache_prefix
+        else:
+            cache_prefix = '%s.%s' % (self.__module__, self.__name__)
         return '%s:%s' % (self.cache_prefix, m.hexdigest())

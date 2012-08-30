@@ -1,12 +1,17 @@
-"""
-jobtastic- A Celery library that makes your user-responsive long-running jobs totally awesomer
-"""
+"""Make your user-facing Celery jobs totally awesomer"""
 
-__version__ = '0.1.0dev'
+VERSION = (0, 1, 0, 'dev')
+__version__ = '.'.join(map(str, VERSION[0:3])) + ''.join(VERSION[3:])
 __author__ = 'Wes Winham'
 __contact__ = 'winhamwr@gmail.com'
 __homepage__ = 'http://policystat.github.com/jobtastic'
+__docformat__ = 'markdown'
 
-__all__ = ('AwesomeResultTask',)
+__all__ = (
+    'JobtasticTask',
+    '__version__',
+)
 
-from jobtastic.task import AwesomeResultTask
+# -eof meta-
+
+from jobtastic.task import JobtasticTask

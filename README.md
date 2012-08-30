@@ -44,40 +44,43 @@ You could write all of the stuff yourself, but why?
 
 Let's take a look at an example task using Jobtastic:
 
-	from time import sleep
-	from jobtastic.task import JobtasticTask
+``` python
+from time import sleep
 
-	class LotsOfDivisionTask(JobtasticTask):
+from jobtastic import JobtasticTask
+
+class LotsOfDivisionTask(JobtasticTask):
+	"""
+	Division is hard. Make Celery do it a bunch.
+	"""
+	# These are the Task kwargs that matter for caching purposes
+	significant_kwargs = [
+		('numerators', str),
+		('denominator', str),
+	]
+	# How long should we give a task before assuming it has failed?
+	herf_avoidance_timeout = 60  # Shouldn't take more than 60 seconds
+	# How long we want to cache results with identical ``significant_kwargs``
+	cache_duration = 0  # Cache these results forever. Math is pretty stable.
+
+	def calculate_result(self, numerators, denominators, **kwargs):
 		"""
-		Division is hard. Make Celery do it a bunch.
+		MATH!!!
 		"""
-		# These are the Task kwargs that matter for caching purposes
-		significant_kwargs = [
-			('numerators', str),
-			('denominator', str),
-		]
-		# How long should we give a task before assuming it has failed?
-		herf_avoidance_timeout = 60  # Shouldn't take more than 60 seconds
-		# How long we want to cache results with identical ``significant_kwargs``
-		cache_duration = 0  # Cache these results forever. Math is pretty stable.
+		results = []
+		divisions_to_do = len(numerators)
+		# Only actually update the progress in the backend every 10 operations
+		update_frequency = 10
+		for count, divisors in enumerate(zip(numerators, denominators)):
+			numerator, denominator = divisors
+			results.append(numerator / denominator)
+			# Let's let everyone know how we're doing
+			self.update_progress(count, divisions_to_do, update_frequency=10)
+			# Let's pretend that we're using the computers that landed us on the moon
+			sleep(0.1)
 
-		def calculate_result(self, numerators, denominators, **kwargs):
-			"""
-			MATH!!!
-			"""
-			results = []
-			divisions_to_do = len(numerators)
-			# Only actually update the progress in the backend every 10 operations
-			update_frequency = 10
-			for count, divisors in enumerate(zip(numerators, denominators)):
-				numerator, denominator = divisors
-				results.append(numerator / denominator)
-				# Let's let everyone know how we're doing
-				self.update_progress(count, divisions_to_do, update_frequency=10)
-				# Let's pretend that we're using the computers that landed us on the moon
-				sleep(0.1)
-
-			return results
+		return results
+```
 
 This task is very trivial, but imagine doing something time-consuming instead
 of division (or just a ton of division) while a user waited. We wouldn't want
@@ -97,27 +100,29 @@ Basically, creating a Celery task using Jobtastic is a matter of:
 
 Now, to use this task in your Django view, you'll do something like:
 
-	from django.shortcuts import render_to_response
+``` python
+from django.shortcuts import render_to_response
 
-	from my_app.tasks import LotsOfDivisionTask
+from my_app.tasks import LotsOfDivisionTask
 
-	def lets_divide(request):
-		"""
-		Do a set number of divisions and keep the user up to date on progress.
-		"""
-		iterations = request.GET.get('iterations', 1000)  # That's a lot. Right?
-		step = 10
+def lets_divide(request):
+	"""
+	Do a set number of divisions and keep the user up to date on progress.
+	"""
+	iterations = request.GET.get('iterations', 1000)  # That's a lot. Right?
+	step = 10
 
-		# If we can't connect to the backend, let's not just 500. k?
-		result = LotsOfDivisionTask().delay_or_fail(
-			numerators=range(0, step * iterations * 2, step * 2),
-			denominators=range(1, step * iterations, step),
-		)
+	# If we can't connect to the backend, let's not just 500. k?
+	result = LotsOfDivisionTask().delay_or_fail(
+		numerators=range(0, step * iterations * 2, step * 2),
+		denominators=range(1, step * iterations, step),
+	)
 
-		return render_to_response(
-			'my_app/lets_divide.html',
-			{'task_id': result.task_id},
-		)
+	return render_to_response(
+		'my_app/lets_divide.html',
+		{'task_id': result.task_id},
+	)
+```
 
 The `my_app/lets_divide.html` template will then use the `task_id` to query the task
 result all asynchronous-like and keep the user up to date with what is
@@ -125,24 +130,25 @@ happening.
 
 For [Flask](http://flask.pocoo.org/), you might do something like:
 
-	from flask import Flask, render_template
+``` python
+from flask import Flask, render_template
 
-	from my_app.tasks import LotsOfDivisionTask
+from my_app.tasks import LotsOfDivisionTask
 
-	app = Flask(__name__)
+app = Flask(__name__)
 
-	@app.route("/", methods=['GET'])
-	def lets_divide():
-		iterations = request.args.get('iterations', 1000)
-		step = 10
+@app.route("/", methods=['GET'])
+def lets_divide():
+	iterations = request.args.get('iterations', 1000)
+	step = 10
 
-		result = LotsOfDivisionTask().delay_or_fail(
-			numerators=range(0, step * iterations * 2, step * 2),
-			denominators=range(1, step * iterations, step),
-		)
+	result = LotsOfDivisionTask().delay_or_fail(
+		numerators=range(0, step * iterations * 2, step * 2),
+		denominators=range(1, step * iterations, step),
+	)
 
-		return render_template('my_app/lets_divide.html', task_id=request.task_id)
-
+	return render_template('my_app/lets_divide.html', task_id=request.task_id)
+```
 
 ### Required Member Variables
 
@@ -159,17 +165,21 @@ these to determine if your task should have an identical result to another task
 run. In our division example, any task with the same numerators and
 denominators can be considered identical, so Jobtastic can do smart things.
 
-		significant_kwargs = [
-			('numerators', str),
-			('denominator', str),
-		]
+``` python
+significant_kwargs = [
+	('numerators', str),
+	('denominator', str),
+]
+```
 
 If we were living in bizzaro world, and only the numerators mattered for
 division results, we could do something like:
 
-		significant_kwargs = [
-			('numerators', str),
-		]
+``` python
+significant_kwargs = [
+	('numerators', str),
+]
+```
 
 Now tasks called with an identical list of numerators will share a result.
 
@@ -202,7 +212,9 @@ estimation.
 
 In your `calculate_result`, you'll want to periodically make calls like:
 
-	self.update_progress(work_done, total_work_to_do)
+``` python
+self.update_progress(work_done, total_work_to_do)
+```
 
 Jobtastic takes care of handling timers to give estimates, and assumes that
 progress will be roughly uniform across each work item.
@@ -218,13 +230,15 @@ updated estimates no user will ever see.
 In our division example, we're only actually updating the progress every 10
 division operations:
 
-		# Only actually update the progress in the backend every 10 operations
-		update_frequency = 10
-		for count, divisors in enumerate(zip(numerators, denominators)):
-			numerator, denominator = divisors
-			results.append(numerator / denominator)
-			# Let's let everyone know how we're doing
-			self.update_progress(count, divisions_to_do, update_frequency=10)
+``` python
+# Only actually update the progress in the backend every 10 operations
+update_frequency = 10
+for count, divisors in enumerate(zip(numerators, denominators)):
+	numerator, denominator = divisors
+	results.append(numerator / denominator)
+	# Let's let everyone know how we're doing
+	self.update_progress(count, divisions_to_do, update_frequency=10)
+```
 
 ### Optional Member Variables
 
@@ -319,10 +333,12 @@ It's generally useful to display something like "Waiting for your task to begin"
 
 Your task has started and you've got a JSON object like:
 
-    {
-        "progress_percent": 0,
-        "time_remaining": 300
-    }
+``` javascript
+{
+	"progress_percent": 0,
+	"time_remaining": 300
+}
+```
 
 `progress_percent` is a number between 0 and 100.
 It's a good idea to give a different message if the percent is 0,

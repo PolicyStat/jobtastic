@@ -228,14 +228,20 @@ class JobtasticTask(Task):
 
         return completion_display, time_remaining
 
-    def update_progress(self, completed_count, total_count):
+    def update_progress(self, completed_count, total_count, update_frequency=1):
         """
         Update the task backend with both an estimated percentage complete and
         number of seconds remaining until completion.
 
         ``completed_count`` Number of task "units" that have been completed out
         of ``total_count`` total "units."
+        ``update_frequency`` Only actually store the updated progress in the
+        background at most every ``N`` ``completed_count``.
         """
+        if completed_count - self._last_update_count < update_frequency:
+            # We've updated the progress too recently. Don't stress out the
+            # result backend
+            return
         # Store progress for display
         progress_percent, time_remaining = self.calc_progress(
             completed_count, total_count)
@@ -259,6 +265,9 @@ class JobtasticTask(Task):
 
         # Record start time to give estimated time remaining estimates
         self.start_time = time.time()
+
+        # Keep track of progress updates for update_frequency tracking
+        self._last_update_count = 0
 
         # Report to the backend that work has been started.
         self.task_id = kwargs.get('task_id', None)

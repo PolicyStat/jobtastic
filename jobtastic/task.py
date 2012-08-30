@@ -10,7 +10,6 @@ import logging
 import time
 from contextlib import contextmanager
 from hashlib import md5
-from uuid import uuid4
 
 from celery import states
 from celery.backends import default_backend
@@ -18,9 +17,6 @@ from celery.task import Task
 from celery.result import BaseAsyncResult
 from celery.signals import task_prerun, task_postrun
 
-from djcelery.models import TaskMeta
-
-from django.conf import settings
 from django.core.cache import cache
 
 from jobtastic.states import PROGRESS
@@ -53,22 +49,6 @@ def acquire_lock(lock_name):
     yield
     cache.decr(lock_name)
 
-
-def get_task_meta_error(exception):
-    """
-    Take an exception, turn it in to a Celery result tombstone that mimics
-    what would happen if that error were thrown during a Task run,
-    and then store that tombstone in the result backend.
-    """
-    # Need to return an object that has a uuid attribute, and need to store the
-    # result in the default result backend
-    fake_result = TaskMeta()
-    task_id = str(uuid4())
-    fake_result.task_id = task_id
-
-    default_backend.store_result(task_id, exception, status=states.FAILURE)
-
-    return fake_result
 
 
 class JobtasticTask(Task):
@@ -138,14 +118,17 @@ class JobtasticTask(Task):
         fake the task completion using the exception as the result. This allows
         us to seamlessly handle errors on task creation the same way we handle
         errors when a task runs, simplifying the user interface.
-
-        Returns a ``TaskMeta`` object that is either the result of calling
-        delay or the faked task result.
         """
         try:
             return self.delay(*args, **kwargs)
         except IOError as e:
-            return get_task_meta_error(e)
+            # Take this exception and store it as an async result. This means that
+            # errors connecting the broker can be handled with the same client-side code
+            # that handles error that occur on workers.
+            self.backend.store_result(
+                self.task_id, exception, status=states.FAILURE)
+
+            return BaseAsyncResult(self.task_id, self.backend)
 
     def delay(self, *args, **kwargs):
         """
@@ -324,10 +307,10 @@ class JobtasticTask(Task):
 
     def on_success(self, retval, task_id, args, kwargs):
         """
-        Store results in the backend even if we're always eager. This helps for
-        testing.
+        Store results in the backend even if we're always eager. This ensures
+        the `delay_or_run` calls always at least have results.
         """
-        if getattr(settings, 'CELERY_ALWAYS_EAGER', False):
+        if self.request.is_eager:
             # Store the result because celery wouldn't otherwise
             self.backend.store_result(task_id, retval, status=states.SUCCESS)
 

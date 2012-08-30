@@ -44,21 +44,20 @@ You could write all of the stuff yourself, but why?
 
 Let's take a look at an example task using Jobtastic:
 
+	from time import sleep
 	from jobtastic.task import JobtasticTask
 
 	class LotsOfDivisionTask(JobtasticTask):
 		"""
 		Division is hard. Make Celery do it a bunch.
 		"""
-		# Any unique string works here
-		cache_prefix = 'myapp.tasks.LotsOfDivisionTask'
 		# These are the Task kwargs that matter for caching purposes
 		significant_kwargs = [
 			('numerators', str),
 			('denominator', str),
 		]
 		# How long should we give a task before assuming it has failed?
-		herf_avoidance_timeout = 20  # Shouldn't take more than 20 seconds
+		herf_avoidance_timeout = 60  # Shouldn't take more than 60 seconds
 		# How long we want to cache results with identical ``significant_kwargs``
 		cache_duration = 0  # Cache these results forever. Math is pretty stable.
 
@@ -68,11 +67,15 @@ Let's take a look at an example task using Jobtastic:
 			"""
 			results = []
 			divisions_to_do = len(numerators)
+			# Only actually update the progress in the backend every 10 operations
+			update_frequency = 10
 			for count, divisors in enumerate(zip(numerators, denominators)):
 				numerator, denominator = divisors
 				results.append(numerator / denominator)
 				# Let's let everyone know how we're doing
-				self.update_progress(count, divisions_to_do)
+				self.update_progress(count, divisions_to_do, update_frequency=10)
+				# Let's pretend that we're using the computers that landed us on the moon
+				sleep(0.1)
 
 			return results
 
@@ -92,30 +95,195 @@ Basically, creating a Celery task using Jobtastic is a matter of:
 4. Sprinkling `update_progress()` calls in your `calculate_result()` method
   to communicate progress
 
+Now, to use this task in your Django view, you'll do something like:
+
+	from django.shortcuts import render_to_response
+
+	from my_app.tasks import LotsOfDivisionTask
+
+	def lets_divide(request):
+		"""
+		Do a set number of divisions and keep the user up to date on progress.
+		"""
+		iterations = request.GET.get('iterations', 1000)  # That's a lot. Right?
+		step = 10
+
+		# If we can't connect to the backend, let's not just 500. k?
+		result = LotsOfDivisionTask().delay_or_fail(
+			numerators=range(0, step * iterations * 2, step * 2),
+			denominators=range(1, step * iterations, step),
+		)
+
+		return render_to_response(
+			'my_app/lets_divide.html',
+			{'task_id': result.task_id},
+		)
+
+The `my_app/lets_divide.html` template will then use the `task_id` to query the task
+result all asynchronous-like and keep the user up to date with what is
+happening.
+
+For [Flask](http://flask.pocoo.org/), you might do something like:
+
+	from flask import Flask, render_template
+
+	from my_app.tasks import LotsOfDivisionTask
+
+	app = Flask(__name__)
+
+	@app.route("/", methods=['GET'])
+	def lets_divide():
+		iterations = request.args.get('iterations', 1000)
+		step = 10
+
+		result = LotsOfDivisionTask().delay_or_fail(
+			numerators=range(0, step * iterations * 2, step * 2),
+			denominators=range(1, step * iterations, step),
+		)
+
+		return render_template('my_app/lets_divide.html', task_id=request.task_id)
+
+
 ### Required Member Variables
 
 "But wait, Wes. What the heck do those member variables actually do?" You ask.
 
 Firstly. How the heck did you know my name?
-And B, why don't I tell you!
-
-#### cache_prefix
+And B, why don't I tell you!?
 
 #### significant_kwargs
 
+This is key to your caching magic. It's a list of 2-tuples containing the name
+of a kwarg plus a function to turn that kwarg in to a string. Jobtastic uses
+these to determine if your task should have an identical result to another task
+run. In our division example, any task with the same numerators and
+denominators can be considered identical, so Jobtastic can do smart things.
+
+		significant_kwargs = [
+			('numerators', str),
+			('denominator', str),
+		]
+
+If we were living in bizzaro world, and only the numerators mattered for
+division results, we could do something like:
+
+		significant_kwargs = [
+			('numerators', str),
+		]
+
+Now tasks called with an identical list of numerators will share a result.
+
 #### herd_avoidance_timeout
+
+This is the max number of seconds for which Jobtastic will wait for identical
+task results to be determined. You want this number to be on the very high end
+of the amount of time you expect to wait (after a task starts) for the result.
+If this number is hit, it's assumed that something bad happened to the other
+task run (a worker failed) and we'll start calculating from the start.
+
+### Method to Override
+
+Other than those two member variables, you'll probably want to actually do
+something in your task.
+
+#### calculate_result
+
+This is where your magic happens. Do work here and return the result.
+
+You'll almost definitely want to call `update_progress` periodically in this
+method so that your users get an idea of for how long they'll be waiting.
+
+### Progress feedback helper
+
+This is the guy you'll want to call to provide nice progress feedback and
+estimation.
+
+#### update_progress
+
+In your `calculate_result`, you'll want to periodically make calls like:
+
+	self.update_progress(work_done, total_work_to_do)
+
+Jobtastic takes care of handling timers to give estimates, and assumes that
+progress will be roughly uniform across each work item.
+
+Most of the time, you really don't need ultra-granular progress updates and can
+afford to only give an update every `N` items completed. Since every update
+would potentially hit your [CELERY_RESULT_BACKEND](
+http://celery.github.com/celery/configuration.html#celery-result-backend), and
+that might cause a network trip, it's probably a good idea to use the optional
+`update_frequency` argument so that Jobtastic doesn't swamp your backend with
+updated estimates no user will ever see.
+
+In our division example, we're only actually updating the progress every 10
+division operations:
+
+		# Only actually update the progress in the backend every 10 operations
+		update_frequency = 10
+		for count, divisors in enumerate(zip(numerators, denominators)):
+			numerator, denominator = divisors
+			results.append(numerator / denominator)
+			# Let's let everyone know how we're doing
+			self.update_progress(count, divisions_to_do, update_frequency=10)
+
+### Optional Member Variables
+
+These let you tweak the behavior a bit, but you can usually ignore them
+(assuming you want to cache identical task results forever).
 
 #### cache_duration
 
-### calculate_result
+This is the number of seconds for which identical jobs should try to just
+re-use the cached result. The default is 0, meaning cache it forever. Remember,
+`JobtasticTask` uses your `signficant_kwargs` to determine what is identical.
 
-### update_progress
+#### cache_prefix
+
+This is an optional string used to represent tasks that should share cache
+results and thundering herd avoidance. You should almost always not set this,
+and let Jobtastic use the `module.class` name. If you have two different tasks
+that should share caching, or you have some very-odd cache key conflict, then
+you can change this yourself. You probably shouldn't.
 
 ## Using your JobtasticTask
 
+Sometimes, your [Task
+Broker](http://celery.github.com/celery/configuration.html#broker-url) just up
+and dies (I'm looking at you, old versions of RabbitMQ). In production, calling
+straight up `delay()` with a dead backend will throw an error that varies based
+on what backend you're actually using. You probably don't want to just give
+your user a generic 500 page if your broker is down, and it's not fun to handle
+that exception every single place you might use Celery. Jobtastic has your
+back.
+
+Included are `delay_or_run` and `delay_or_fail` methods that handle a dead
+backend and do something a little more production-friendly.
+
+Note: One very important caveat with `JobtasticTask` is that all of your arguments
+must be keyword arguments.
+
+Note: This is a limitation of the current `signficant_kwargs`
+implementation, and totally fixable if someone wants to submit a pull request.
+
 ### delay_or_run
 
+If your broker is behaving, this guy acts just like `delay()`. In the case that
+your broker is down, though, it just goes ahead and runs the task in the
+current process and skips sending the task to a worker. If you have a task that
+realistically only takes a few seconds to run, this might be better than giving
+an error message.
+
 ### delay_or_fail
+
+Like `delay_or_run`, this helps you handle a dead broker. Instead of running
+your task in the current process, this actually generates a task result
+representing the failure. This means that your client-side code can handle it
+like any other failed task and do something nice for the user. Maybe send them
+flowers?
+
+For tasks that might take a while or consume a lot of RAM, you're probably
+better off using this than `delay_or_run` because you don't want to make a
+resource problem worse.
 
 ## Client Side Handling
 

@@ -14,7 +14,7 @@ from uuid import uuid4
 
 from celery import states
 from celery.backends import default_backend
-from celery import Task
+from celery.task import Task
 from celery.result import BaseAsyncResult
 from celery.signals import task_prerun, task_postrun
 
@@ -353,4 +353,4 @@ class JobtasticTask(Task):
             cache_prefix = self.cache_prefix
         else:
             cache_prefix = '%s.%s' % (self.__module__, self.__name__)
-        return '%s:%s' % (self.cache_prefix, m.hexdigest())
+        return '%s:%s' % (cache_prefix, m.hexdigest())

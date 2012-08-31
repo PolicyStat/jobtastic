@@ -41,33 +41,409 @@
       <section>
         <h1>jobtastic- Celery tasks plus more awesome</h1>
 
-<p>A Celery library that makes your user-responsive long-running jobs totally
-awesomer.</p>
+<p>Jobtastic is a <a href="http://celeryproject.org">Celery</a> library
+that makes your user-responsive long-running jobs
+totally awesomer.
+Celery is the ubiquitous python job queueing tool
+and jobtastic is a python library
+that adds useful features to your Celery tasks.
+Specifically, these are features you probably want
+if the results of your jobs are expensive
+or if your users need to wait while they compute their results.</p>
 
-<h2>Why jobtastic?</h2>
+<p>Jobtastic gives you goodies like:</p>
+
+<ul>
+<li>Easy progress estimation/reporting</li>
+<li>Job status feedback</li>
+<li>Helper methods for gracefully handling a dead task broker
+(<code>delay_or_run</code> and <code>delay_or_fail</code>)</li>
+<li>A <a href="https://github.com/PolicyStat/jquery-celery">celery jQuery plugin</a>
+for easy client-side progress display</li>
+<li>Result caching</li>
+<li>
+<a href="http://en.wikipedia.org/wiki/Thundering_herd_problem">Thundering herd</a> avoidance</li>
+</ul><p>Make your Celery jobs more awesome with Jobtastic.</p>
+
+<h2>Why Jobtastic?</h2>
+
+<p>If you have user-facing tasks for which a user must wait,
+you should try Jobtastic.
+It's great for:</p>
+
+<ul>
+<li>Complex reports</li>
+<li>Graph generation</li>
+<li>CSV exports</li>
+<li>Any long-running, user-facing job</li>
+</ul><p>You could write all of the stuff yourself, but why?</p>
 
 <h2>Installation</h2>
 
 <ol>
 <li>
-<p>Get the project source and install it::</p>
+<p>Get the project source and install it</p>
 
 <p>$ pip install jobtastic</p>
 </li>
 </ol><h2>Creating Your First Task</h2>
 
-<h2>Using jobtastic.js</h2>
+<p>Let's take a look at an example task using Jobtastic:</p>
+
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
+
+<span class="kn">from</span> <span class="nn">jobtastic</span> <span class="kn">import</span> <span class="n">JobtasticTask</span>
+
+<span class="k">class</span> <span class="nc">LotsOfDivisionTask</span><span class="p">(</span><span class="n">JobtasticTask</span><span class="p">):</span>
+    <span class="sd">"""</span>
+<span class="sd">    Division is hard. Make Celery do it a bunch.</span>
+<span class="sd">    """</span>
+    <span class="c"># These are the Task kwargs that matter for caching purposes</span>
+    <span class="n">significant_kwargs</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s">'numerators'</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+        <span class="p">(</span><span class="s">'denominator'</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+    <span class="p">]</span>
+    <span class="c"># How long should we give a task before assuming it has failed?</span>
+    <span class="n">herf_avoidance_timeout</span> <span class="o">=</span> <span class="mi">60</span>  <span class="c"># Shouldn't take more than 60 seconds</span>
+    <span class="c"># How long we want to cache results with identical ``significant_kwargs``</span>
+    <span class="n">cache_duration</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c"># Cache these results forever. Math is pretty stable.</span>
+
+    <span class="k">def</span> <span class="nf">calculate_result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">numerators</span><span class="p">,</span> <span class="n">denominators</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">"""</span>
+<span class="sd">        MATH!!!</span>
+<span class="sd">        """</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">divisions_to_do</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">numerators</span><span class="p">)</span>
+        <span class="c"># Only actually update the progress in the backend every 10 operations</span>
+        <span class="n">update_frequency</span> <span class="o">=</span> <span class="mi">10</span>
+        <span class="k">for</span> <span class="n">count</span><span class="p">,</span> <span class="n">divisors</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">numerators</span><span class="p">,</span> <span class="n">denominators</span><span class="p">)):</span>
+            <span class="n">numerator</span><span class="p">,</span> <span class="n">denominator</span> <span class="o">=</span> <span class="n">divisors</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">numerator</span> <span class="o">/</span> <span class="n">denominator</span><span class="p">)</span>
+            <span class="c"># Let's let everyone know how we're doing</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_progress</span><span class="p">(</span><span class="n">count</span><span class="p">,</span> <span class="n">divisions_to_do</span><span class="p">,</span> <span class="n">update_frequency</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+            <span class="c"># Let's pretend that we're using the computers that landed us on the moon</span>
+            <span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">results</span>
+</pre></div>
+
+<p>This task is very trivial, but imagine doing something time-consuming instead
+of division (or just a ton of division) while a user waited. We wouldn't want
+a double-clicker to cause this to happen twice concurrently, we wouldn't want
+to ever redo this work on the same numbers and we would want the user to have
+at least some idea of how long they'll need to wait. Just by setting those 4
+member variables, we've done all of these things.</p>
+
+<p>Basically, creating a Celery task using Jobtastic is a matter of:</p>
+
+<ol>
+<li>Subclassing <code>jobtastic.task.JobtasticTask</code>
+</li>
+<li>Defining some required member variables</li>
+<li>Writing your <code>calculate_result</code> method
+(instead of the normal Celery <code>run()</code> method)</li>
+<li>Sprinkling <code>update_progress()</code> calls in your <code>calculate_result()</code> method
+to communicate progress</li>
+</ol><p>Now, to use this task in your Django view, you'll do something like:</p>
+
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">django.shortcuts</span> <span class="kn">import</span> <span class="n">render_to_response</span>
+
+<span class="kn">from</span> <span class="nn">my_app.tasks</span> <span class="kn">import</span> <span class="n">LotsOfDivisionTask</span>
+
+<span class="k">def</span> <span class="nf">lets_divide</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+    <span class="sd">"""</span>
+<span class="sd">    Do a set number of divisions and keep the user up to date on progress.</span>
+<span class="sd">    """</span>
+    <span class="n">iterations</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">GET</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">'iterations'</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>  <span class="c"># That's a lot. Right?</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="mi">10</span>
+
+    <span class="c"># If we can't connect to the backend, let's not just 500. k?</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">LotsOfDivisionTask</span><span class="p">()</span><span class="o">.</span><span class="n">delay_or_fail</span><span class="p">(</span>
+        <span class="n">numerators</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">step</span> <span class="o">*</span> <span class="n">iterations</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">step</span> <span class="o">*</span> <span class="mi">2</span><span class="p">),</span>
+        <span class="n">denominators</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">step</span> <span class="o">*</span> <span class="n">iterations</span><span class="p">,</span> <span class="n">step</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">render_to_response</span><span class="p">(</span>
+        <span class="s">'my_app/lets_divide.html'</span><span class="p">,</span>
+        <span class="p">{</span><span class="s">'task_id'</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">task_id</span><span class="p">},</span>
+    <span class="p">)</span>
+</pre></div>
+
+<p>The <code>my_app/lets_divide.html</code> template will then use the <code>task_id</code> to query the task
+result all asynchronous-like and keep the user up to date with what is
+happening.</p>
+
+<p>For <a href="http://flask.pocoo.org/">Flask</a>, you might do something like:</p>
+
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">render_template</span>
+
+<span class="kn">from</span> <span class="nn">my_app.tasks</span> <span class="kn">import</span> <span class="n">LotsOfDivisionTask</span>
+
+<span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+
+<span class="nd">@app.route</span><span class="p">(</span><span class="s">"/"</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s">'GET'</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">lets_divide</span><span class="p">():</span>
+    <span class="n">iterations</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">'iterations'</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="mi">10</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">LotsOfDivisionTask</span><span class="p">()</span><span class="o">.</span><span class="n">delay_or_fail</span><span class="p">(</span>
+        <span class="n">numerators</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">step</span> <span class="o">*</span> <span class="n">iterations</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">step</span> <span class="o">*</span> <span class="mi">2</span><span class="p">),</span>
+        <span class="n">denominators</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">step</span> <span class="o">*</span> <span class="n">iterations</span><span class="p">,</span> <span class="n">step</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s">'my_app/lets_divide.html'</span><span class="p">,</span> <span class="n">task_id</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">task_id</span><span class="p">)</span>
+</pre></div>
+
+<h3>Required Member Variables</h3>
+
+<p>"But wait, Wes. What the heck do those member variables actually do?" You ask.</p>
+
+<p>Firstly. How the heck did you know my name?
+And B, why don't I tell you!?</p>
+
+<h4>significant_kwargs</h4>
+
+<p>This is key to your caching magic. It's a list of 2-tuples containing the name
+of a kwarg plus a function to turn that kwarg in to a string. Jobtastic uses
+these to determine if your task should have an identical result to another task
+run. In our division example, any task with the same numerators and
+denominators can be considered identical, so Jobtastic can do smart things.</p>
+
+<div class="highlight"><pre><span class="n">significant_kwargs</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s">'numerators'</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+    <span class="p">(</span><span class="s">'denominator'</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+<span class="p">]</span>
+</pre></div>
+
+<p>If we were living in bizzaro world, and only the numerators mattered for
+division results, we could do something like:</p>
+
+<div class="highlight"><pre><span class="n">significant_kwargs</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s">'numerators'</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+<span class="p">]</span>
+</pre></div>
+
+<p>Now tasks called with an identical list of numerators will share a result.</p>
+
+<h4>herd_avoidance_timeout</h4>
+
+<p>This is the max number of seconds for which Jobtastic will wait for identical
+task results to be determined. You want this number to be on the very high end
+of the amount of time you expect to wait (after a task starts) for the result.
+If this number is hit, it's assumed that something bad happened to the other
+task run (a worker failed) and we'll start calculating from the start.</p>
+
+<h3>Optional Member Variables</h3>
+
+<p>These let you tweak the behavior a bit, but you can usually ignore them
+(assuming you want to cache identical task results forever).</p>
+
+<h4>cache_duration</h4>
+
+<p>If you want your results cached, set this to a positive number of seconds. This
+is the number of seconds for which identical jobs should try to just re-use the
+cached result. The default is -1, meaning don't do any caching. Remember,
+<code>JobtasticTask</code> uses your <code>signficant_kwargs</code> to determine what is identical.</p>
+
+<h4>cache_prefix</h4>
+
+<p>This is an optional string used to represent tasks that should share cache
+results and thundering herd avoidance. You should almost always not set this,
+and let Jobtastic use the <code>module.class</code> name. If you have two different tasks
+that should share caching, or you have some very-odd cache key conflict, then
+you can change this yourself. You probably shouldn't.</p>
+
+<h3>Method to Override</h3>
+
+<p>Other than those two member variables, you'll probably want to actually do
+something in your task.</p>
+
+<h4>calculate_result</h4>
+
+<p>This is where your magic happens. Do work here and return the result.</p>
+
+<p>You'll almost definitely want to call <code>update_progress</code> periodically in this
+method so that your users get an idea of for how long they'll be waiting.</p>
+
+<h3>Progress feedback helper</h3>
+
+<p>This is the guy you'll want to call to provide nice progress feedback and
+estimation.</p>
+
+<h4>update_progress</h4>
+
+<p>In your <code>calculate_result</code>, you'll want to periodically make calls like:</p>
+
+<div class="highlight"><pre><span class="bp">self</span><span class="o">.</span><span class="n">update_progress</span><span class="p">(</span><span class="n">work_done</span><span class="p">,</span> <span class="n">total_work_to_do</span><span class="p">)</span>
+</pre></div>
+
+<p>Jobtastic takes care of handling timers to give estimates, and assumes that
+progress will be roughly uniform across each work item.</p>
+
+<p>Most of the time, you really don't need ultra-granular progress updates and can
+afford to only give an update every <code>N</code> items completed. Since every update
+would potentially hit your <a href="http://celery.github.com/celery/configuration.html#celery-result-backend">CELERY_RESULT_BACKEND</a>, and
+that might cause a network trip, it's probably a good idea to use the optional
+<code>update_frequency</code> argument so that Jobtastic doesn't swamp your backend with
+updated estimates no user will ever see.</p>
+
+<p>In our division example, we're only actually updating the progress every 10
+division operations:</p>
+
+<div class="highlight"><pre><span class="c"># Only actually update the progress in the backend every 10 operations</span>
+<span class="n">update_frequency</span> <span class="o">=</span> <span class="mi">10</span>
+<span class="k">for</span> <span class="n">count</span><span class="p">,</span> <span class="n">divisors</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">numerators</span><span class="p">,</span> <span class="n">denominators</span><span class="p">)):</span>
+    <span class="n">numerator</span><span class="p">,</span> <span class="n">denominator</span> <span class="o">=</span> <span class="n">divisors</span>
+    <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">numerator</span> <span class="o">/</span> <span class="n">denominator</span><span class="p">)</span>
+    <span class="c"># Let's let everyone know how we're doing</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">update_progress</span><span class="p">(</span><span class="n">count</span><span class="p">,</span> <span class="n">divisions_to_do</span><span class="p">,</span> <span class="n">update_frequency</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+</pre></div>
+
+<h2>Using your JobtasticTask</h2>
+
+<p>Sometimes, your <a href="http://celery.github.com/celery/configuration.html#broker-url">Task
+Broker</a> just up
+and dies (I'm looking at you, old versions of RabbitMQ). In production, calling
+straight up <code>delay()</code> with a dead backend will throw an error that varies based
+on what backend you're actually using. You probably don't want to just give
+your user a generic 500 page if your broker is down, and it's not fun to handle
+that exception every single place you might use Celery. Jobtastic has your
+back.</p>
+
+<p>Included are <code>delay_or_run</code> and <code>delay_or_fail</code> methods that handle a dead
+backend and do something a little more production-friendly.</p>
+
+<p>Note: One very important caveat with <code>JobtasticTask</code> is that all of your arguments
+must be keyword arguments.</p>
+
+<p>Note: This is a limitation of the current <code>signficant_kwargs</code>
+implementation, and totally fixable if someone wants to submit a pull request.</p>
+
+<h3>delay_or_run</h3>
+
+<p>If your broker is behaving, this guy acts just like <code>delay()</code>. In the case that
+your broker is down, though, it just goes ahead and runs the task in the
+current process and skips sending the task to a worker. If you have a task that
+realistically only takes a few seconds to run, this might be better than giving
+an error message.</p>
+
+<h3>delay_or_fail</h3>
+
+<p>Like <code>delay_or_run</code>, this helps you handle a dead broker. Instead of running
+your task in the current process, this actually generates a task result
+representing the failure. This means that your client-side code can handle it
+like any other failed task and do something nice for the user. Maybe send them
+flowers?</p>
+
+<p>For tasks that might take a while or consume a lot of RAM, you're probably
+better off using this than <code>delay_or_run</code> because you don't want to make a
+resource problem worse.</p>
+
+<h2>Client Side Handling</h2>
+
+<p>That's all well and good on the server side,
+but the biggest benefit of Jobtastic is useful user-facing feedback.
+That means handling status checks using AJAX in the browser.</p>
+
+<p>The easiest way to get rolling is to use our sister project,
+<a href="https://github.com/PolicyStat/jquery-celery">jquery-celery</a>.
+It contains jQuery plugins that help you:</p>
+
+<ul>
+<li>Poll for task status and handle the result</li>
+<li>Display a progress bar using the info from the <code>PROGRESS</code> state.</li>
+<li>Display tabular data using <a href="http://www.datatables.net/">DataTables</a>.</li>
+</ul><p>If you want to roll your own,
+the general pattern is to poll a URL
+(such as the django-celery
+<a href="https://github.com/celery/django-celery/blob/master/djcelery/urls.py#L25">task_status view</a> )
+with your taskid to get JSON status information
+and then handle the possible states to keep the user informed.</p>
+
+<p>The <a href="https://github.com/PolicyStat/jquery-celery/blob/master/src/celery.js">jquery-celery</a>
+jQuery plugin might still be useful as reference,
+even if you're rolling your own.
+In general, you'll want to handle the following cases:</p>
+
+<h3>PENDING</h3>
+
+<p>Your task is still waiting for a worker process.
+It's generally useful to display something like "Waiting for your task to begin".</p>
+
+<h3>PROGRESS</h3>
+
+<p>Your task has started and you've got a JSON object like:</p>
+
+<div class="highlight"><pre><span class="p">{</span>
+    <span class="s2">"progress_percent"</span><span class="o">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s2">"time_remaining"</span><span class="o">:</span> <span class="mi">300</span>
+<span class="p">}</span>
+</pre></div>
+
+<p><code>progress_percent</code> is a number between 0 and 100.
+It's a good idea to give a different message if the percent is 0,
+because the time remaining estimate might not yet be well-calibrated.</p>
+
+<p><code>time_remaining</code> is the number of seconds estimated to be left.
+If there's no good estimate available, this value will be <code>-1</code>.</p>
+
+<h3>SUCCESS</h3>
+
+<p>You've got your data. It's time to display the result.</p>
+
+<h3>FAILURE</h3>
+
+<p>Something went wrong and the worker reported a failure.
+This is a good time to either display a useful error message
+(if the user can be expected to correct the problem),
+or to ask the user to retry their task.</p>
+
+<h3>Non-200 Request</h3>
+
+<p>There are occasions where requesting the task status itself might error out.
+This isn't a reflection on the worker itself,
+as it could be caused by any number of application errors.
+In general, you probably want to try again if this happens,
+but if it persists, you'll want to give your user feedback.</p>
 
 <h2>Is it Awesome?</h2>
 
 <p>Yes. Increasingly so.</p>
+
+<h2>A note on usage with Flask</h2>
+
+<p>If you're using Flask instead of Django, then the only currently-supported way
+to work with Jobtastic is with Memcached as your <code>CELERY_RESULT_BACKEND</code>. A
+more generally-pythonic way of choosing/plugging cache backends is definitely a
+goal, though, and pull requests
+(see <a href="https://github.com/PolicyStat/jobtastic/issues/8">Issue 8</a>
+or suggestions are very welcome.</p>
+
+<h2>Project Status</h2>
+
+<p>Jobtastic is being in production on a large Django project with RabbitMQ as a
+broker and Memcached as a result backend. If that's your configuration, then
+you're in good shape. For other configurations, there are probably bugs that
+will need to be ironed out.</p>
+
+<p>Jobtastic is currently known to work with Django 1.3.x and Celery 2.5.x. The
+goal is to support those versions and newer. Please file issues if there are
+problems with newer versions of Django/Celery.</p>
+
+<h2>Non-affiliation</h2>
+
+<p>This project isn't affiliated with the awesome folks at the
+<a href="http://www.celeryproject.org">Celery Project</a>
+(unless having a huge crush counts as affiliation).
+It's a library that the folks at <a href="http://www.policystat.com">PolicyStat</a>
+have been using internally and decided to open source in the hopes it is useful to others.</p>
       </section>
       <footer>
         <p>Project maintained by <a href="https://github.com/PolicyStat">PolicyStat</a></p>
         <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="http://twitter.com/#!/michigangraham">mattgraham</a></small></p>
       </footer>
     </div>
-    <!--[if !IE]><script>fixScale(document);</script><!--<![endif]-->
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
     
   </body>
 </html>

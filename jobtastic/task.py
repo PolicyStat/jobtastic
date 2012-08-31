@@ -17,24 +17,35 @@ from celery.task import Task
 from celery.result import BaseAsyncResult
 from celery.signals import task_prerun, task_postrun
 
+HAS_DJANGO = False
+HAS_WERKZEUG = False
 try:
     # For now, let's just say that if Django exists, we should use it.
     # Otherwise, try Flask. This definitely needs an actual configuration
     # variable so folks can make an explicit decision.
     from django.core.cache import cache
+    HAS_DJANGO = True
 except ImportError:
-    # We should really have an explicitly-defined way of doing this, but for
-    # now, let's just use werkzeug Memcached if it exists
-    from werkzeug.contrib.cache import MemcachedCache
+    pass
 
-    from celery import conf
-    if conf.CELERY_RESULT_BACKEND == 'cache':
-        uri_str = conf.CELERY_CACHE_BACKEND.strip('memcached://')
-        uris = uri_str.split(';')
-        cache = MemcachedCache(uris)
-    else:
-        raise Exception(
-            "Jobtastic requires either Django or Flask + Memcached result backend")
+if not HAS_DJANGO:
+    try:
+        # We should really have an explicitly-defined way of doing this, but for
+        # now, let's just use werkzeug Memcached if it exists
+        from werkzeug.contrib.cache import MemcachedCache
+
+        from celery import conf
+        if conf.CELERY_RESULT_BACKEND == 'cache':
+            uri_str = conf.CELERY_CACHE_BACKEND.strip('memcached://')
+            uris = uri_str.split(';')
+            cache = MemcachedCache(uris)
+            HAS_WERKZEUG = True
+    except ImportError:
+        pass
+
+if not HAS_DJANGO and not HAS_WERKZEUG:
+    raise Exception(
+        "Jobtastic requires either Django or Flask + Memcached result backend")
 
 
 from jobtastic.states import PROGRESS

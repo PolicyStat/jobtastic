@@ -376,7 +376,9 @@ Yes. Increasingly so.
 If you're using Flask instead of Django, then the only currently-supported way
 to work with Jobtastic is with Memcached as your `CELERY_RESULT_BACKEND`. A
 more generally-pythonic way of choosing/plugging cache backends is definitely a
-goal, though, and pull requests or suggestions are very welcome.
+goal, though, and pull requests
+(see [Issue 8](https://github.com/PolicyStat/jobtastic/issues/8)
+or suggestions are very welcome.
 
 ## Project Status
 

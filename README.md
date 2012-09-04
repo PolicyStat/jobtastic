@@ -59,7 +59,7 @@ class LotsOfDivisionTask(JobtasticTask):
 		('denominator', str),
 	]
 	# How long should we give a task before assuming it has failed?
-	herf_avoidance_timeout = 60  # Shouldn't take more than 60 seconds
+	herd_avoidance_timeout = 60  # Shouldn't take more than 60 seconds
 	# How long we want to cache results with identical ``significant_kwargs``
 	cache_duration = 0  # Cache these results forever. Math is pretty stable.
 

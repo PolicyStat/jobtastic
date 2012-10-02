@@ -6,16 +6,16 @@ reporting, error fallback and JSON encoding of results.
 """
 from __future__ import division
 
+import multiprocessing
+import Queue
 import logging
 import time
 from contextlib import contextmanager
 from hashlib import md5
 
 from celery import states
-from celery.backends import default_backend
 from celery.task import Task
 from celery.result import BaseAsyncResult
-from celery.signals import task_prerun, task_postrun
 
 HAS_DJANGO = False
 HAS_WERKZEUG = False
@@ -30,15 +30,15 @@ except ImportError:
 
 if not HAS_DJANGO:
     try:
-        # We should really have an explicitly-defined way of doing this, but for
-        # now, let's just use werkzeug Memcached if it exists
+        # We should really have an explicitly-defined way of doing this, but
+        # for now, let's just use werkzeug Memcached if it exists
         from werkzeug.contrib.cache import MemcachedCache
 
         from celery import conf
         if conf.CELERY_RESULT_BACKEND == 'cache':
             uri_str = conf.CELERY_CACHE_BACKEND.strip('memcached://')
             uris = uri_str.split(';')
-            cache = MemcachedCache(uris)
+            cache = MemcachedCache(uris)  # noqa
             HAS_WERKZEUG = True
     except ImportError:
         pass
@@ -49,6 +49,7 @@ if not HAS_DJANGO and not HAS_WERKZEUG:
 
 
 from jobtastic.states import PROGRESS
+
 
 @contextmanager
 def acquire_lock(lock_name):
@@ -77,7 +78,6 @@ def acquire_lock(lock_name):
         return
     yield
     cache.decr(lock_name)
-
 
 
 class JobtasticTask(Task):
@@ -151,11 +151,11 @@ class JobtasticTask(Task):
         try:
             return self.delay(*args, **kwargs)
         except IOError as e:
-            # Take this exception and store it as an async result. This means that
-            # errors connecting the broker can be handled with the same client-side code
-            # that handles error that occur on workers.
+            # Take this exception and store it as an async result. This means
+            # that errors connecting the broker can be handled with the same
+            # client-side code that handles error that occur on workers.
             self.backend.store_result(
-                self.task_id, exception, status=states.FAILURE)
+                self.task_id, e, status=states.FAILURE)
 
             return BaseAsyncResult(self.task_id, self.backend)
 
@@ -240,7 +240,8 @@ class JobtasticTask(Task):
 
         return completion_display, time_remaining
 
-    def update_progress(self, completed_count, total_count, update_frequency=1):
+    def update_progress(
+            self, completed_count, total_count, update_frequency=1):
         """
         Update the task backend with both an estimated percentage complete and
         number of seconds remaining until completion.
@@ -295,7 +296,10 @@ class JobtasticTask(Task):
 
         self.logger.info("Calculating result")
         try:
-            task_result = self.calculate_result(*args, **kwargs)
+            if hasattr(self, 'task_timeout'):
+                task_result = self._get_task_result(*args, **kwargs)
+            else:
+                task_result = self.calculate_result(*args, **kwargs)
         except Exception:
             # Don't want other tasks waiting for this task to finish, since it
             # won't
@@ -316,9 +320,52 @@ class JobtasticTask(Task):
 
         return task_result
 
+    def _get_task_result(self, *args, **kwargs):
+
+        # Define a wrapper that calculates the result and adds to the queue.
+        def wrapper(queue, *args, **kwargs):
+            task_result = self.calculate_result(*args, **kwargs)
+            queue.put(task_result)
+            queue.close()
+
+        # Create a Queue of size one for timeout purposes.
+        queue = multiprocessing.Queue(1)
+        new_args = [queue]
+        new_args.extend(args)
+
+        # Build the process with the existing args and kwargs making sure to
+        # add the queue for the wrapper.
+        proc = multiprocessing.Process(
+            target=wrapper,
+            args=new_args,
+            kwargs=kwargs,
+        )
+        proc.start()
+
+        timed_out = False
+        try:
+            # Try to get the result, but if it takes longer than
+            # ``self.task_timeout`` then bail.
+            result = queue.get(True, self.task_timeout)
+        except Queue.Empty:
+            # Not quite sure what should be stored in the result, but for now
+            # this will do.
+            result = ''
+            # Toggle the timed_out flag so we know that the task timed out.
+            timed_out = True
+        finally:
+            # Clean up the process.
+            proc.terminate()
+
+        # Return the result.
+        return {
+            'timed_out': timed_out,
+            'result': result,
+        }
+
     def calculate_result(self, *args, **kwargs):
         raise NotImplementedError(
-            "Tasks using JobtasticTask must implement their own calculate_result")
+            "Tasks using JobtasticTask must implement their own calculate_result")  # noqa
 
     def _validate_required_class_vars(self):
         """

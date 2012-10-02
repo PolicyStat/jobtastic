@@ -6,6 +6,8 @@ reporting, error fallback and JSON encoding of results.
 """
 from __future__ import division
 
+import multiprocessing
+import Queue
 import logging
 import time
 from contextlib import contextmanager
@@ -295,7 +297,10 @@ class JobtasticTask(Task):
 
         self.logger.info("Calculating result")
         try:
-            task_result = self.calculate_result(*args, **kwargs)
+            if hasattr(self, 'task_timeout'):
+                task_result = self._get_task_result(*args, **kwargs)
+            else:
+                task_result = self.calculate_result(*args, **kwargs)
         except Exception:
             # Don't want other tasks waiting for this task to finish, since it
             # won't
@@ -315,6 +320,32 @@ class JobtasticTask(Task):
         self._break_thundering_herd_cache()
 
         return task_result
+
+    def _get_task_result(self, *args, **kwargs):
+        def wrapper(queue, *args, **kwargs):
+            task_result = self.calculate_result(*args, **kwargs)
+            queue.put(task_result)
+            queue.close()
+
+        queue = multiprocessing.Queue(1)
+        new_args = [queue]
+        new_args.extend(args)
+        proc = multiprocessing.Process(target=wrapper, args=new_args, kwargs=kwargs)
+        proc.start()
+
+        timed_out = False
+        try:
+            result = queue.get(True, self.task_timeout)
+        except Queue.Empty:
+            result = ''
+            timed_out = True
+        finally:
+            proc.terminate()
+        return {
+            'timed_out': timed_out,
+            'result': result,
+        }
+
 
     def calculate_result(self, *args, **kwargs):
         raise NotImplementedError(

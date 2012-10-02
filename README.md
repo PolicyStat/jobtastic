@@ -233,6 +233,14 @@ or you have some very-odd cache key conflict,
 then you can change this yourself.
 You probably don't need to.
 
+#### task_timeout
+
+This optional positive integer will tell Jobtastic that after `task_timeout`
+seconds, early return. This is useful if you have a task that usually finishes
+in a certain period of time, however there are edgecases that cause the task to
+take much longer. Basically if it takes longer than `task_timeout` we do not
+care about the output, so early return to free up the task.
+
 ### Method to Override
 
 Other than tweaking the member variables,

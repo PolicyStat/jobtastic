@@ -321,14 +321,20 @@ class JobtasticTask(Task):
         return task_result
 
     def _get_task_result(self, *args, **kwargs):
+
+        # Define a wrapper that calculates the result and adds to the queue.
         def wrapper(queue, *args, **kwargs):
             task_result = self.calculate_result(*args, **kwargs)
             queue.put(task_result)
             queue.close()
 
+        # Create a Queue of size one for timeout purposes.
         queue = multiprocessing.Queue(1)
         new_args = [queue]
         new_args.extend(args)
+
+        # Build the process with the existing args and kwargs making sure to
+        # add the queue for the wrapper.
         proc = multiprocessing.Process(
             target=wrapper,
             args=new_args,
@@ -338,12 +344,20 @@ class JobtasticTask(Task):
 
         timed_out = False
         try:
+            # Try to get the result, but if it takes longer than
+            # ``self.task_timeout`` then bail.
             result = queue.get(True, self.task_timeout)
         except Queue.Empty:
+            # Not quite sure what should be stored in the result, but for now
+            # this will do.
             result = ''
+            # Toggle the timed_out flag so we know that the task timed out.
             timed_out = True
         finally:
+            # Clean up the process.
             proc.terminate()
+
+        # Return the result.
         return {
             'timed_out': timed_out,
             'result': result,

@@ -1,8 +1,24 @@
 import os
+import sys
+import warnings
 
-# Django settings for django_proj project.
+# Ignore deprecation warnings caused by running the same project with different
+# versions of Django
+warnings.filterwarnings(
+    'ignore',
+    category=DeprecationWarning,
+    module=r'django\.core\.management',
+)
+warnings.filterwarnings(
+    'ignore',
+    category=DeprecationWarning,
+    module=r'django_nose\.management\.commands\.test',
+)
 
 here = os.path.abspath(os.path.dirname(__file__))
+
+# Put this project's apps on the python path
+sys.path.append(here)
 
 ROOT_URLCONF = 'testproj.urls'
 
@@ -11,6 +27,7 @@ TEMPLATE_DEBUG = DEBUG
 USE_TZ = True
 TIME_ZONE = 'UTC'
 SITE_ID = 1
+SECRET_KEY = ')&a$!r0n!&c$$!-!%r)4kq4b5y9jncx(&2ulmb2*nvx^yi^bp5'
 ADMINS = ()
 MANAGERS = ADMINS
 
@@ -40,6 +57,7 @@ NOSE_ARGS = [
     os.path.join(here, os.pardir, os.pardir, os.pardir, 'jobtastic', 'tests'),
     os.environ.get("NOSE_VERBOSE") and "--verbose" or "",
 ]
+TEST_RUNNER = 'django_nose.run_tests'
 
 # Celery Configuration
 

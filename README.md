@@ -407,6 +407,17 @@ as it could be caused by any number of application errors.
 In general, you probably want to try again if this happens,
 but if it persists, you'll want to give your user feedback.
 
+## Running The Test Suite
+
+You can run Jobtastic's test suite yourself via:
+
+    $ python setup.py test
+
+Our test suite currently only tests usage with Django,
+which is definitely a [bug](https://github.com/PolicyStat/jobtastic/issues/15).
+Especially if you use Jobtastic with Flask,
+we would love a pull request.
+
 ## Is it Awesome?
 
 Yes. Increasingly so.

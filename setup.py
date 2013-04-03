@@ -96,12 +96,8 @@ def reqs(*f):
 
 install_requires = reqs('default.txt')
 
-# -*- Tests Requires -*-
-
-tests_require = reqs('django_test.txt')
-
-
 # -*- Test Runners -*-
+
 
 class RunDjangoTests(Command):
     description = 'Run the django test suite from the tests dir.'
@@ -114,7 +110,7 @@ class RunDjangoTests(Command):
             os.environ[env_name] = str(env_value)
 
         this_dir = os.getcwd()
-        testproj_dir = os.path.join(this_dir, 'tests')
+        testproj_dir = os.path.join(this_dir, 'test_projects')
         django_testproj_dir = os.path.join(testproj_dir, 'django')
         os.chdir(django_testproj_dir)
         sys.path.append(django_testproj_dir)
@@ -156,5 +152,4 @@ setup(
         'test': RunDjangoTests,
     },
     install_requires=install_requires,
-    tests_require=tests_require,
 )

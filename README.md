@@ -1,6 +1,6 @@
 # jobtastic- Celery tasks plus more awesome
 
-[![Build Status](https://travis-ci.org/[PolicyStat]/[jobtastic].png?branch=master)](https://travis-ci.org/[PolicyStat]/[jobtastic])
+[![Build Status](https://travis-ci.org/PolicyStat/jobtastic.png?branch=master)](https://travis-ci.org/PolicyStat/jobtastic)
 
 Jobtastic makes your user-responsive long-running
 [Celery](http://celeryproject.org) jobs totally awesomer.

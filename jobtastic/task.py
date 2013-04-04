@@ -17,6 +17,13 @@ from celery.task import Task
 from celery.result import BaseAsyncResult
 from celery.signals import task_prerun, task_postrun
 
+get_task_logger = None
+try:
+    from celery.utils.log import get_task_logger
+except ImportError:
+    # get_task_logger is new in Celery 3.X
+    pass
+
 HAS_DJANGO = False
 HAS_WERKZEUG = False
 try:
@@ -270,7 +277,11 @@ class JobtasticTask(Task):
             status=PROGRESS)
 
     def run(self, *args, **kwargs):
-        self.logger = self.get_logger(**kwargs)
+        if get_task_logger:
+            self.logger = get_task_logger(self.__class__.__name__)
+        else:
+            # Celery 2.X fallback
+            self.logger = self.get_logger(**kwargs)
         self.logger.info("Starting %s", self.__class__.__name__)
 
         self.cache_key = self._get_cache_key(**kwargs)

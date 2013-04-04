@@ -34,8 +34,11 @@ class MemoryGrowthTest(TestCase):
     def _get_logger(self):
         return logging.getLogger('celery.task')
 
-    def _get_mem_warning_count(self):
-        return len(self.log_handler.messages['warning'])
+    def _get_and_reset_warning_count(self):
+        count = len(self.log_handler.messages['warning'])
+        self.log_handler.reset()
+
+        return count
 
     def _get_task(self):
         return mem_tasks.MemLeakyTask()
@@ -63,16 +66,17 @@ class MemoryGrowthTest(TestCase):
         # warnings
         self.assertEqual(mem_tasks.MemLeakyTask().run(bloat_factor=1), 1)
         # We should have logged no warnings as a result of this
-        self.assertEqual(self._get_mem_warning_count(), 0)
+        self.assertEqual(self._get_and_reset_warning_count(), 0)
 
     def test_above_threshold(self):
         self.assertEqual(mem_tasks.MemLeakyTask().run(bloat_factor=5), 5)
-        self.assertEqual(self._get_mem_warning_count(), 1)
+        self.assertEqual(self._get_and_reset_warning_count(), 1)
 
     def test_only_triggered_on_change(self):
-        self.assertEqual(mem_tasks.MemLeakyTask().run(bloat_factor=5), 5)
-        self.assertEqual(self._get_mem_warning_count(), 1)
+        task = mem_tasks.MemLeakyTask()
+        self.assertEqual(task.run(bloat_factor=5), 5)
+        self.assertEqual(self._get_and_reset_warning_count(), 1)
 
-        self.assertEqual(mem_tasks.MemLeakyTask().run(bloat_factor=0), 0)
+        self.assertEqual(task.run(bloat_factor=0), 0)
         # There are no extra warnings
-        self.assertEqual(self._get_mem_warning_count(), 1)
+        self.assertEqual(self._get_and_reset_warning_count(), 0)

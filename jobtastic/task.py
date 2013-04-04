@@ -8,8 +8,11 @@ from __future__ import division
 
 import logging
 import time
+import os
 from contextlib import contextmanager
 from hashlib import md5
+
+import psutil
 
 from celery import states
 from celery.backends import default_backend
@@ -113,6 +116,11 @@ class JobtasticTask(Task):
     * ``cache_duration`` The number of seconds for which the result of this
       task should be cached, meaning subsequent equivalent runs will skip
       computation. The default is to do no result caching.
+    * ``memleak_threshold`` When a single run of a Task increase the resident
+      process memory usage by more than this number of MegaBytes, a warning is
+      logged to the logger. This is useful for finding tasks that are behaving
+      badly under certain conditions. By default, no logger is performed.
+      Set this value to 0 to log all RAM changes and -1 to disable logging.
 
     Provided are helpers for:
 
@@ -304,6 +312,10 @@ class JobtasticTask(Task):
                 status=PROGRESS,
             )
 
+        memleak_threshold = int(getattr(self, 'memleak_threshold', -1))
+        if memleak_threshold >= 0:
+            begining_memory_usage = self._get_memory_usage()
+
         self.logger.info("Calculating result")
         try:
             task_result = self.calculate_result(*args, **kwargs)
@@ -324,6 +336,14 @@ class JobtasticTask(Task):
         # Now that the task is finished, we can stop all of the thundering herd
         # avoidance
         self._break_thundering_herd_cache()
+
+        if memleak_threshold >= 0:
+            self._warn_if_leaking_memory(
+                begining_memory_usage,
+                self._get_memory_usage(),
+                memleak_threshold,
+                logger=self.logger,
+            )
 
         return task_result
 
@@ -377,3 +397,30 @@ class JobtasticTask(Task):
         else:
             cache_prefix = '%s.%s' % (self.__module__, self.__name__)
         return '%s:%s' % (cache_prefix, m.hexdigest())
+
+    def _get_memory_usage(self):
+        current_process = psutil.Process(os.getpid())
+        usage = current_process.get_memory_info()
+
+        return usage.rss
+
+    def _warn_if_leaking_memory(
+        self, begining_usage, ending_usage, threshold, logger
+    ):
+        growth = ending_usage - begining_usage
+
+        threshold_in_bytes = threshold * 1000000
+
+        if growth > threshold_in_bytes:
+            logger.warning(
+                "Jobtastic: memleak detected. RAM increased by [%s] MB",
+                growth / 1000000,
+            )
+            logger.info(
+                "Process memory usage started at [%s] MB",
+                begining_usage / 1000000,
+            )
+            logger.info(
+                "Process memory usage ended at [%s] MB",
+                ending_usage / 1000000,
+            )

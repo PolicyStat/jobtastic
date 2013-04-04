@@ -14,7 +14,7 @@ class MemLeakyTask(JobtasticTask):
         ('bloat_factor', str),
     ]
     herd_avoidance_timeout = 0
-    memory_growth_warning_trigger = 2
+    memleak_threshold = 5
 
     def calculate_result(self, bloat_factor, **kwargs):
         """

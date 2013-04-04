@@ -15,10 +15,8 @@ from hashlib import md5
 import psutil
 
 from celery import states
-from celery.backends import default_backend
 from celery.task import Task
 from celery.result import BaseAsyncResult
-from celery.signals import task_prerun, task_postrun
 
 get_task_logger = None
 try:
@@ -27,8 +25,7 @@ except ImportError:
     # get_task_logger is new in Celery 3.X
     pass
 
-HAS_DJANGO = False
-HAS_WERKZEUG = False
+cache = None
 try:
     # For now, let's just say that if Django exists, we should use it.
     # Otherwise, try Flask. This definitely needs an actual configuration
@@ -36,12 +33,9 @@ try:
     from django.core.cache import cache
     HAS_DJANGO = True
 except ImportError:
-    pass
-
-if not HAS_DJANGO:
     try:
-        # We should really have an explicitly-defined way of doing this, but for
-        # now, let's just use werkzeug Memcached if it exists
+        # We should really have an explicitly-defined way of doing this, but
+        # for now, let's just use werkzeug Memcached if it exists
         from werkzeug.contrib.cache import MemcachedCache
 
         from celery import conf
@@ -53,12 +47,13 @@ if not HAS_DJANGO:
     except ImportError:
         pass
 
-if not HAS_DJANGO and not HAS_WERKZEUG:
+if cache is None:
     raise Exception(
         "Jobtastic requires either Django or Flask + Memcached result backend")
 
 
 from jobtastic.states import PROGRESS
+
 
 @contextmanager
 def acquire_lock(lock_name):
@@ -87,7 +82,6 @@ def acquire_lock(lock_name):
         return
     yield
     cache.decr(lock_name)
-
 
 
 class JobtasticTask(Task):
@@ -166,11 +160,11 @@ class JobtasticTask(Task):
         try:
             return self.delay(*args, **kwargs)
         except IOError as e:
-            # Take this exception and store it as an async result. This means that
-            # errors connecting the broker can be handled with the same client-side code
-            # that handles error that occur on workers.
+            # Take this exception and store it as an async result. This means
+            # that errors connecting the broker can be handled with the same
+            # client-side code that handles error that occur on workers.
             self.backend.store_result(
-                self.task_id, exception, status=states.FAILURE)
+                self.task_id, e, status=states.FAILURE)
 
             return BaseAsyncResult(self.task_id, self.backend)
 
@@ -255,7 +249,8 @@ class JobtasticTask(Task):
 
         return completion_display, time_remaining
 
-    def update_progress(self, completed_count, total_count, update_frequency=1):
+    def update_progress(
+        self, completed_count, total_count, update_frequency=1):
         """
         Update the task backend with both an estimated percentage complete and
         number of seconds remaining until completion.
@@ -348,8 +343,10 @@ class JobtasticTask(Task):
         return task_result
 
     def calculate_result(self, *args, **kwargs):
-        raise NotImplementedError(
-            "Tasks using JobtasticTask must implement their own calculate_result")
+        raise NotImplementedError((
+            "Tasks using JobtasticTask must implement "
+            "their own calculate_result"
+        ))
 
     def _validate_required_class_vars(self):
         """

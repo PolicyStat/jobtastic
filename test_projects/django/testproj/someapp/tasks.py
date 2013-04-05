@@ -3,10 +3,10 @@ import random
 
 from jobtastic import JobtasticTask
 
-leaky_global = {}
+leaky_global = []
 
 
-class MemLeakyTask(JobtasticTask):
+class BaseMemLeakyTask(JobtasticTask):
     """
     This task leaks memory like crazy, by adding things to `leaky_global`.
     """
@@ -14,16 +14,13 @@ class MemLeakyTask(JobtasticTask):
         ('bloat_factor', str),
     ]
     herd_avoidance_timeout = 0
-    memleak_threshold = 5
 
     def calculate_result(self, bloat_factor, **kwargs):
         """
         Let's bloat our thing!
         """
         global leaky_global
-
-        if 'bloat' not in leaky_global:
-            leaky_global['bloat'] = []
+        print len(leaky_global)
 
         for _ in xrange(bloat_factor):
             # 1 million bytes for a MB
@@ -31,6 +28,18 @@ class MemLeakyTask(JobtasticTask):
             # Add something new to it so python can't just point to the same
             # memory location
             new_str += random.choice(string.letters)
-            leaky_global['bloat'].append(new_str)
+            leaky_global.append(new_str)
 
         return bloat_factor
+
+
+class MemLeakyTask(BaseMemLeakyTask):
+    memleak_threshold = 10
+
+
+class MemLeakyDisabledWarningTask(BaseMemLeakyTask):
+    memleak_threshold = -1
+
+
+class MemLeakyDefaultedTask(BaseMemLeakyTask):
+    pass

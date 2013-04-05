@@ -1,82 +1,90 @@
-import logging
-
+import mock
 from unittest2 import TestCase
 
 from testproj.someapp import tasks as mem_tasks
 
 
-class MockLoggingHandler(logging.Handler):
-    """
-    Mock logging handler to check for expected logs.
-
-    Found at:
-    http://stackoverflow.com/q/899067/386925
-    """
-
-    def __init__(self, *args, **kwargs):
-        self.reset()
-        logging.Handler.__init__(self, *args, **kwargs)
-
-    def emit(self, record):
-        self.messages[record.levelname.lower()].append(record.getMessage())
-
-    def reset(self):
-        self.messages = {
-            'debug': [],
-            'info': [],
-            'warning': [],
-            'error': [],
-            'critical': [],
-        }
-
-
 class MemoryGrowthTest(TestCase):
-    def _get_logger(self):
-        return logging.getLogger('celery.task')
-
-    def _get_and_reset_warning_count(self):
-        count = len(self.log_handler.messages['warning'])
-        self.log_handler.reset()
-
-        return count
-
-    def _get_task(self):
-        return mem_tasks.MemLeakyTask()
-
     def setUp(self):
-        self.logger = self._get_logger()
-
-        # Add a handler so we can see what messages are added/removed
-        self.log_handler = MockLoggingHandler()
-        self.logger.addHandler(self.log_handler)
+        self.task = mem_tasks.MemLeakyTask()
 
     def tearDown(self):
-        self.logger.removeHandler(self.log_handler)
-
         # Reset the variable that leaks memory
-        mem_tasks.leaky_global = {}
+        mem_tasks.leaky_global = []
 
     def test_sanity(self):
         # The task actually runs
-        task = mem_tasks.MemLeakyTask()
-        self.assertEqual(task.run(bloat_factor=0), 0)
+        self.assertEqual(self.task.run(bloat_factor=0), 0)
 
-    def test_below_threshold(self):
+    @mock.patch.object(
+        mem_tasks.MemLeakyTask,
+        '_warn_of_memory_leak',
+        autospec=True,
+        side_effect=mem_tasks.MemLeakyTask._warn_of_memory_leak,
+    )
+    def test_below_threshold(self, mock_warn_of_memory_leak):
         # If there's less than the threshold in growth, we don't spit out any
         # warnings
-        self.assertEqual(mem_tasks.MemLeakyTask().run(bloat_factor=1), 1)
+        self.assertEqual(self.task.run(bloat_factor=1), 1)
         # We should have logged no warnings as a result of this
-        self.assertEqual(self._get_and_reset_warning_count(), 0)
+        self.assertEqual(mock_warn_of_memory_leak.call_count, 0)
 
-    def test_above_threshold(self):
-        self.assertEqual(mem_tasks.MemLeakyTask().run(bloat_factor=5), 5)
-        self.assertEqual(self._get_and_reset_warning_count(), 1)
+    @mock.patch.object(
+        mem_tasks.MemLeakyTask,
+        '_warn_of_memory_leak',
+        autospec=True,
+    )
+    def test_above_threshold(self, mock_warn_of_memory_leak):
+        self.assertEqual(self.task.run(bloat_factor=5), 5)
+        self.assertEqual(mock_warn_of_memory_leak.call_count, 1)
 
-    def test_only_triggered_on_change(self):
-        task = mem_tasks.MemLeakyTask()
-        self.assertEqual(task.run(bloat_factor=5), 5)
-        self.assertEqual(self._get_and_reset_warning_count(), 1)
+    @mock.patch.object(
+        mem_tasks.MemLeakyTask,
+        '_warn_of_memory_leak',
+        autospec=True,
+    )
+    def test_triggered_repeatedly_on_increase(self, mock_warn_of_memory_leak):
+        self.assertEqual(self.task.run(bloat_factor=5), 5)
+        self.assertEqual(mock_warn_of_memory_leak.call_count, 1)
 
-        self.assertEqual(task.run(bloat_factor=0), 0)
+        self.assertEqual(self.task.run(bloat_factor=5), 5)
+        self.assertEqual(mock_warn_of_memory_leak.call_count, 2)
+
+    @mock.patch.object(
+        mem_tasks.MemLeakyTask,
+        '_warn_of_memory_leak',
+        autospec=True,
+        side_effect=mem_tasks.MemLeakyTask._warn_of_memory_leak,
+    )
+    def test_only_triggered_on_change(self, mock_warn_of_memory_leak):
+        self.assertEqual(self.task.run(bloat_factor=5), 5)
+        self.assertEqual(mock_warn_of_memory_leak.call_count, 1)
+
+        self.assertEqual(self.task.run(bloat_factor=0), 0)
         # There are no extra warnings
-        self.assertEqual(self._get_and_reset_warning_count(), 0)
+        self.assertEqual(mock_warn_of_memory_leak.call_count, 1)
+
+    @mock.patch.object(
+        mem_tasks.MemLeakyDefaultedTask,
+        '_warn_of_memory_leak',
+        autospec=True,
+        side_effect=mem_tasks.MemLeakyDefaultedTask._warn_of_memory_leak,
+    )
+    def test_defaults_disabled(self, mock_warn_of_memory_leak):
+        self.assertEqual(
+            mem_tasks.MemLeakyDefaultedTask().run(bloat_factor=5),
+            5,
+        )
+        self.assertEqual(mock_warn_of_memory_leak.call_count, 0)
+
+    @mock.patch.object(
+        mem_tasks.MemLeakyDisabledWarningTask,
+        '_warn_of_memory_leak',
+        autospec=True,
+    )
+    def test_disabled_with_negative_config(self, mock_warn_of_memory_leak):
+        self.assertEqual(
+            mem_tasks.MemLeakyDisabledWarningTask().run(bloat_factor=5),
+            5,
+        )
+        self.assertEqual(mock_warn_of_memory_leak.call_count, 0)

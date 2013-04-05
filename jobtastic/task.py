@@ -113,7 +113,7 @@ class JobtasticTask(Task):
     * ``memleak_threshold`` When a single run of a Task increase the resident
       process memory usage by more than this number of MegaBytes, a warning is
       logged to the logger. This is useful for finding tasks that are behaving
-      badly under certain conditions. By default, no logger is performed.
+      badly under certain conditions. By default, no logging is performed.
       Set this value to 0 to log all RAM changes and -1 to disable logging.
 
     Provided are helpers for:
@@ -337,7 +337,6 @@ class JobtasticTask(Task):
                 begining_memory_usage,
                 self._get_memory_usage(),
                 memleak_threshold,
-                logger=self.logger,
             )
 
         return task_result
@@ -402,22 +401,25 @@ class JobtasticTask(Task):
         return usage.rss
 
     def _warn_if_leaking_memory(
-        self, begining_usage, ending_usage, threshold, logger
+        self, begining_usage, ending_usage, threshold,
     ):
         growth = ending_usage - begining_usage
 
         threshold_in_bytes = threshold * 1000000
 
         if growth > threshold_in_bytes:
-            logger.warning(
-                "Jobtastic: memleak detected. RAM increased by [%s] MB",
-                growth / 1000000,
-            )
-            logger.info(
-                "Process memory usage started at [%s] MB",
-                begining_usage / 1000000,
-            )
-            logger.info(
-                "Process memory usage ended at [%s] MB",
-                ending_usage / 1000000,
-            )
+            self._warn_of_memory_leak(growth, begining_usage, ending_usage)
+
+    def _warn_of_memory_leak(self, growth, begining_usage, ending_usage):
+        self.logger.warning(
+            "Jobtastic: memleak detected. RAM increased by [%s] MB",
+            growth / 1000000,
+        )
+        self.logger.info(
+            "Process memory usage started at [%s] MB",
+            begining_usage / 1000000,
+        )
+        self.logger.info(
+            "Process memory usage ended at [%s] MB",
+            ending_usage / 1000000,
+        )

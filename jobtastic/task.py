@@ -160,9 +160,11 @@ class JobtasticTask(Task):
         try:
             return self.delay(*args, **kwargs)
         except IOError as e:
-            # Take this exception and store it as an async result. This means
-            # that errors connecting the broker can be handled with the same
-            # client-side code that handles error that occur on workers.
+            # Take this exception and store it as an error in the result backend.
+            # This unifies the handling of broker-connection errors with any
+            # other type of error that might occur when running the task. So
+            # the same error-handling that might retry a task or display a
+            # useful message to the user can also handle this error.
             self.backend.store_result(
                 self.task_id, e, status=states.FAILURE)
 

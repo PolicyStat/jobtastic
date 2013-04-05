@@ -18,9 +18,9 @@ class MemoryGrowthTest(TestCase):
 
     @mock.patch.object(
         mem_tasks.MemLeakyTask,
-        '_warn_of_memory_leak',
+        'warn_of_memory_leak',
         autospec=True,
-        side_effect=mem_tasks.MemLeakyTask._warn_of_memory_leak,
+        side_effect=mem_tasks.MemLeakyTask.warn_of_memory_leak,
     )
     def test_below_threshold(self, mock_warn_of_memory_leak):
         # If there's less than the threshold in growth, we don't spit out any
@@ -31,7 +31,7 @@ class MemoryGrowthTest(TestCase):
 
     @mock.patch.object(
         mem_tasks.MemLeakyTask,
-        '_warn_of_memory_leak',
+        'warn_of_memory_leak',
         autospec=True,
     )
     def test_above_threshold(self, mock_warn_of_memory_leak):
@@ -40,7 +40,7 @@ class MemoryGrowthTest(TestCase):
 
     @mock.patch.object(
         mem_tasks.MemLeakyTask,
-        '_warn_of_memory_leak',
+        'warn_of_memory_leak',
         autospec=True,
     )
     def test_triggered_repeatedly_on_increase(self, mock_warn_of_memory_leak):
@@ -52,9 +52,9 @@ class MemoryGrowthTest(TestCase):
 
     @mock.patch.object(
         mem_tasks.MemLeakyTask,
-        '_warn_of_memory_leak',
+        'warn_of_memory_leak',
         autospec=True,
-        side_effect=mem_tasks.MemLeakyTask._warn_of_memory_leak,
+        side_effect=mem_tasks.MemLeakyTask.warn_of_memory_leak,
     )
     def test_only_triggered_on_change(self, mock_warn_of_memory_leak):
         self.assertEqual(self.task.run(bloat_factor=5), 5)
@@ -66,9 +66,9 @@ class MemoryGrowthTest(TestCase):
 
     @mock.patch.object(
         mem_tasks.MemLeakyDefaultedTask,
-        '_warn_of_memory_leak',
+        'warn_of_memory_leak',
         autospec=True,
-        side_effect=mem_tasks.MemLeakyDefaultedTask._warn_of_memory_leak,
+        side_effect=mem_tasks.MemLeakyDefaultedTask.warn_of_memory_leak,
     )
     def test_defaults_disabled(self, mock_warn_of_memory_leak):
         self.assertEqual(
@@ -79,7 +79,7 @@ class MemoryGrowthTest(TestCase):
 
     @mock.patch.object(
         mem_tasks.MemLeakyDisabledWarningTask,
-        '_warn_of_memory_leak',
+        'warn_of_memory_leak',
         autospec=True,
     )
     def test_disabled_with_negative_config(self, mock_warn_of_memory_leak):

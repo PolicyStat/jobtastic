@@ -337,6 +337,7 @@ class JobtasticTask(Task):
                 begining_memory_usage,
                 self._get_memory_usage(),
                 memleak_threshold,
+                task_kwargs=kwargs,
             )
 
         return task_result
@@ -401,25 +402,36 @@ class JobtasticTask(Task):
         return usage.rss
 
     def _warn_if_leaking_memory(
-        self, begining_usage, ending_usage, threshold,
+        self, begining_usage, ending_usage, threshold, task_kwargs,
     ):
         growth = ending_usage - begining_usage
 
         threshold_in_bytes = threshold * 1000000
 
         if growth > threshold_in_bytes:
-            self._warn_of_memory_leak(growth, begining_usage, ending_usage)
+            self.warn_of_memory_leak(
+                growth,
+                begining_usage,
+                ending_usage,
+                task_kwargs,
+            )
 
-    def _warn_of_memory_leak(self, growth, begining_usage, ending_usage):
+    def warn_of_memory_leak(
+        self, growth, begining_usage, ending_usage, task_kwargs,
+    ):
         self.logger.warning(
-            "Jobtastic: memleak detected. RAM increased by [%s] MB",
+            "Jobtastic:memleak memleak_detected. memory_increase=%05d unit=MB",
             growth / 1000000,
         )
         self.logger.info(
-            "Process memory usage started at [%s] MB",
+            "Jobtastic:memleak memory_usage_start=%05d unit=MB",
             begining_usage / 1000000,
         )
         self.logger.info(
-            "Process memory usage ended at [%s] MB",
+            "Jobtastic:memleak memory_usage_end=%05d unit=MB",
             ending_usage / 1000000,
+        )
+        self.logger.info(
+            "Jobtastic:memleak task_kwargs=%s",
+            repr(task_kwargs),
         )

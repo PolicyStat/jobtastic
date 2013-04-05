@@ -1,1 +1,2 @@
 celery>=2.5
+psutil

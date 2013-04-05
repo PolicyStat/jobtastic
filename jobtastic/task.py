@@ -8,17 +8,24 @@ from __future__ import division
 
 import logging
 import time
+import os
 from contextlib import contextmanager
 from hashlib import md5
 
+import psutil
+
 from celery import states
-from celery.backends import default_backend
 from celery.task import Task
 from celery.result import BaseAsyncResult
-from celery.signals import task_prerun, task_postrun
 
-HAS_DJANGO = False
-HAS_WERKZEUG = False
+get_task_logger = None
+try:
+    from celery.utils.log import get_task_logger
+except ImportError:
+    # get_task_logger is new in Celery 3.X
+    pass
+
+cache = None
 try:
     # For now, let's just say that if Django exists, we should use it.
     # Otherwise, try Flask. This definitely needs an actual configuration
@@ -26,12 +33,9 @@ try:
     from django.core.cache import cache
     HAS_DJANGO = True
 except ImportError:
-    pass
-
-if not HAS_DJANGO:
     try:
-        # We should really have an explicitly-defined way of doing this, but for
-        # now, let's just use werkzeug Memcached if it exists
+        # We should really have an explicitly-defined way of doing this, but
+        # for now, let's just use werkzeug Memcached if it exists
         from werkzeug.contrib.cache import MemcachedCache
 
         from celery import conf
@@ -43,12 +47,13 @@ if not HAS_DJANGO:
     except ImportError:
         pass
 
-if not HAS_DJANGO and not HAS_WERKZEUG:
+if cache is None:
     raise Exception(
         "Jobtastic requires either Django or Flask + Memcached result backend")
 
 
 from jobtastic.states import PROGRESS
+
 
 @contextmanager
 def acquire_lock(lock_name):
@@ -79,7 +84,6 @@ def acquire_lock(lock_name):
     cache.decr(lock_name)
 
 
-
 class JobtasticTask(Task):
     """
     A base ``Celery.Task`` class that provides some common niceties for running
@@ -106,6 +110,11 @@ class JobtasticTask(Task):
     * ``cache_duration`` The number of seconds for which the result of this
       task should be cached, meaning subsequent equivalent runs will skip
       computation. The default is to do no result caching.
+    * ``memleak_threshold`` When a single run of a Task increase the resident
+      process memory usage by more than this number of MegaBytes, a warning is
+      logged to the logger. This is useful for finding tasks that are behaving
+      badly under certain conditions. By default, no logging is performed.
+      Set this value to 0 to log all RAM changes and -1 to disable logging.
 
     Provided are helpers for:
 
@@ -151,11 +160,13 @@ class JobtasticTask(Task):
         try:
             return self.delay(*args, **kwargs)
         except IOError as e:
-            # Take this exception and store it as an async result. This means that
-            # errors connecting the broker can be handled with the same client-side code
-            # that handles error that occur on workers.
+            # Take this exception and store it as an error in the result backend.
+            # This unifies the handling of broker-connection errors with any
+            # other type of error that might occur when running the task. So
+            # the same error-handling that might retry a task or display a
+            # useful message to the user can also handle this error.
             self.backend.store_result(
-                self.task_id, exception, status=states.FAILURE)
+                self.task_id, e, status=states.FAILURE)
 
             return BaseAsyncResult(self.task_id, self.backend)
 
@@ -240,7 +251,8 @@ class JobtasticTask(Task):
 
         return completion_display, time_remaining
 
-    def update_progress(self, completed_count, total_count, update_frequency=1):
+    def update_progress(
+        self, completed_count, total_count, update_frequency=1):
         """
         Update the task backend with both an estimated percentage complete and
         number of seconds remaining until completion.
@@ -270,7 +282,11 @@ class JobtasticTask(Task):
             status=PROGRESS)
 
     def run(self, *args, **kwargs):
-        self.logger = self.get_logger(**kwargs)
+        if get_task_logger:
+            self.logger = get_task_logger(self.__class__.__name__)
+        else:
+            # Celery 2.X fallback
+            self.logger = self.get_logger(**kwargs)
         self.logger.info("Starting %s", self.__class__.__name__)
 
         self.cache_key = self._get_cache_key(**kwargs)
@@ -293,6 +309,10 @@ class JobtasticTask(Task):
                 status=PROGRESS,
             )
 
+        memleak_threshold = int(getattr(self, 'memleak_threshold', -1))
+        if memleak_threshold >= 0:
+            begining_memory_usage = self._get_memory_usage()
+
         self.logger.info("Calculating result")
         try:
             task_result = self.calculate_result(*args, **kwargs)
@@ -314,11 +334,21 @@ class JobtasticTask(Task):
         # avoidance
         self._break_thundering_herd_cache()
 
+        if memleak_threshold >= 0:
+            self._warn_if_leaking_memory(
+                begining_memory_usage,
+                self._get_memory_usage(),
+                memleak_threshold,
+                task_kwargs=kwargs,
+            )
+
         return task_result
 
     def calculate_result(self, *args, **kwargs):
-        raise NotImplementedError(
-            "Tasks using JobtasticTask must implement their own calculate_result")
+        raise NotImplementedError((
+            "Tasks using JobtasticTask must implement "
+            "their own calculate_result"
+        ))
 
     def _validate_required_class_vars(self):
         """
@@ -366,3 +396,44 @@ class JobtasticTask(Task):
         else:
             cache_prefix = '%s.%s' % (self.__module__, self.__name__)
         return '%s:%s' % (cache_prefix, m.hexdigest())
+
+    def _get_memory_usage(self):
+        current_process = psutil.Process(os.getpid())
+        usage = current_process.get_memory_info()
+
+        return usage.rss
+
+    def _warn_if_leaking_memory(
+        self, begining_usage, ending_usage, threshold, task_kwargs,
+    ):
+        growth = ending_usage - begining_usage
+
+        threshold_in_bytes = threshold * 1000000
+
+        if growth > threshold_in_bytes:
+            self.warn_of_memory_leak(
+                growth,
+                begining_usage,
+                ending_usage,
+                task_kwargs,
+            )
+
+    def warn_of_memory_leak(
+        self, growth, begining_usage, ending_usage, task_kwargs,
+    ):
+        self.logger.warning(
+            "Jobtastic:memleak memleak_detected. memory_increase=%05d unit=MB",
+            growth / 1000000,
+        )
+        self.logger.info(
+            "Jobtastic:memleak memory_usage_start=%05d unit=MB",
+            begining_usage / 1000000,
+        )
+        self.logger.info(
+            "Jobtastic:memleak memory_usage_end=%05d unit=MB",
+            ending_usage / 1000000,
+        )
+        self.logger.info(
+            "Jobtastic:memleak task_kwargs=%s",
+            repr(task_kwargs),
+        )

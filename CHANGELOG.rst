@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.1.1
+-----
+
+* Memory leak detection via ``memleak_threshold``
+* Tox and Travis-CI tests!
+
 0.1.0
 -----
 

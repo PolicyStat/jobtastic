@@ -41,6 +41,8 @@
       <section>
         <h1>jobtastic- Celery tasks plus more awesome</h1>
 
+<p><a href="https://travis-ci.org/PolicyStat/jobtastic"><img src="https://travis-ci.org/PolicyStat/jobtastic.png?branch=master" alt="Build Status"></a></p>
+
 <p>Jobtastic makes your user-responsive long-running
 <a href="http://celeryproject.org">Celery</a> jobs totally awesomer.
 Celery is the ubiquitous python job queueing tool
@@ -63,6 +65,7 @@ or if your users need to wait while they compute their results.</p>
 <li>Integration with a
 <a href="https://github.com/PolicyStat/jquery-celery">celery jQuery plugin</a>
 for easy client-side progress display</li>
+<li>Memory leak detection in a task run</li>
 </ul><p>Make your Celery jobs more awesome with Jobtastic.</p>
 
 <h2>Why Jobtastic?</h2>
@@ -107,6 +110,7 @@ It's great for:</p>
     <span class="n">herd_avoidance_timeout</span> <span class="o">=</span> <span class="mi">60</span>  <span class="c"># Shouldn't take more than 60 seconds</span>
     <span class="c"># How long we want to cache results with identical ``significant_kwargs``</span>
     <span class="n">cache_duration</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c"># Cache these results forever. Math is pretty stable.</span>
+    <span class="c"># Note: 0 means different things in different cache backends. RTFM for yours.</span>
 
     <span class="k">def</span> <span class="nf">calculate_result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">numerators</span><span class="p">,</span> <span class="n">denominators</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">"""</span>
@@ -274,6 +278,26 @@ If you have two different tasks that should share caching,
 or you have some very-odd cache key conflict,
 then you can change this yourself.
 You probably don't need to.</p>
+
+<h4>memleak_threshold</h4>
+
+<p>Set this value to monitor your tasks
+for any runs that increase the memory usage
+by more than this number of Megabytes
+(the SI definition).
+Individual task runs that increase resident memory
+by more than this threshold
+get some extra logging
+in order to help you debug the problem.
+By default, it logs the following via standard Celery logging:</p>
+
+<ul>
+<li>The memory increase</li>
+<li>The memory starting value</li>
+<li>The memory ending value</li>
+<li>The task's kwargs</li>
+</ul><p>If you'd like to customize this behavior,
+you can override the <code>warn_of_memory_leak</code> method in your own <code>Task</code>.</p>
 
 <h3>Method to Override</h3>
 
@@ -447,11 +471,37 @@ as it could be caused by any number of application errors.
 In general, you probably want to try again if this happens,
 but if it persists, you'll want to give your user feedback.</p>
 
+<h2>Running The Test Suite</h2>
+
+<p>You can run Jobtastic's test suite yourself via:</p>
+
+<pre><code>$ python setup.py test
+</code></pre>
+
+<p>Our test suite currently only tests usage with Django,
+which is definitely a <a href="https://github.com/PolicyStat/jobtastic/issues/15">bug</a>.
+Especially if you use Jobtastic with Flask,
+we would love a pull request.</p>
+
+<p>You can also run tests
+across all of our supported python/Django/Celery versions via Tox:</p>
+
+<pre><code>$ tox
+</code></pre>
+
 <h2>Is it Awesome?</h2>
 
 <p>Yes. Increasingly so.</p>
 
-<h2>A note on usage with Flask</h2>
+<h2>Project Status</h2>
+
+<p>Jobtastic is currently known to work
+with Django 1.3-1.5 and Celery 2.5-3.0.
+The goal is to support those versions and newer.
+Please file issues if there are problems
+with newer versions of Django/Celery.</p>
+
+<h3>A note on usage with Flask</h3>
 
 <p>If you're using Flask instead of Django,
 then the only currently-supported way to work with Jobtastic
@@ -461,24 +511,8 @@ is definitely a goal,
 though,
 and pull requests
 (see <a href="https://github.com/PolicyStat/jobtastic/issues/8">Issue 8</a> )
-or suggestions are very welcome.</p>
-
-<h2>Project Status</h2>
-
-<p>Jobtastic is being used in production on a large Django project
-with RabbitMQ as a broker
-and Memcached as a result backend.
-If that's your configuration,
-then you're in good shape.
-For other configurations,
-there are probably bugs that will need to be ironed out.
-Please file them!</p>
-
-<p>Jobtastic is currently known to work
-with Django 1.3.x and Celery 2.5.x.
-The goal is to support those versions and newer.
-Please file issues if there are problems
-with newer versions of Django/Celery.</p>
+or suggestions are very welcome.
+We'd also love some Flask-specific tests!</p>
 
 <h2>Non-affiliation</h2>
 

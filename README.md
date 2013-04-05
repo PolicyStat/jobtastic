@@ -21,6 +21,7 @@ Jobtastic gives you goodies like:
 * Integration with a
   [celery jQuery plugin](https://github.com/PolicyStat/jquery-celery)
   for easy client-side progress display
+* Memory leak detection in a task run
 
 Make your Celery jobs more awesome with Jobtastic.
 
@@ -236,6 +237,25 @@ or you have some very-odd cache key conflict,
 then you can change this yourself.
 You probably don't need to.
 
+#### memleak_threshold
+
+Set this value to monitor your tasks
+for any runs that increase the memory usage
+by more than this number of Megabytes
+(the SI definition).
+Individual task runs that increase resident memory
+by more than this threshold
+get some extra logging
+in order to help you debug the problem.
+By default, it logs the following via standard Celery logging:
+ * The memory increase
+ * The memory starting value
+ * The memory ending value
+ * The task's kwargs
+
+If you'd like to customize this behavior,
+you can override the `warn_of_memory_leak` method in your own `Task`.
+
 ### Method to Override
 
 Other than tweaking the member variables,
@@ -421,11 +441,24 @@ which is definitely a [bug](https://github.com/PolicyStat/jobtastic/issues/15).
 Especially if you use Jobtastic with Flask,
 we would love a pull request.
 
+You can also run tests
+across all of our supported python/Django/Celery versions via Tox:
+
+    $ tox
+
 ## Is it Awesome?
 
 Yes. Increasingly so.
 
-## A note on usage with Flask
+## Project Status
+
+Jobtastic is currently known to work
+with Django 1.3-1.5 and Celery 2.5-3.0.
+The goal is to support those versions and newer.
+Please file issues if there are problems
+with newer versions of Django/Celery.
+
+### A note on usage with Flask
 
 If you're using Flask instead of Django,
 then the only currently-supported way to work with Jobtastic
@@ -436,23 +469,7 @@ though,
 and pull requests
 (see [Issue 8](https://github.com/PolicyStat/jobtastic/issues/8) )
 or suggestions are very welcome.
-
-## Project Status
-
-Jobtastic is being used in production on a large Django project
-with RabbitMQ as a broker
-and Memcached as a result backend.
-If that's your configuration,
-then you're in good shape.
-For other configurations,
-there are probably bugs that will need to be ironed out.
-Please file them!
-
-Jobtastic is currently known to work
-with Django 1.3.x and Celery 2.5.x.
-The goal is to support those versions and newer.
-Please file issues if there are problems
-with newer versions of Django/Celery.
+We'd also love some Flask-specific tests!
 
 ## Non-affiliation
 

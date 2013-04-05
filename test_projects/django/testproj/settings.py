@@ -1,5 +1,4 @@
 import os
-import sys
 import warnings
 
 # Ignore deprecation warnings caused by running the same project with different
@@ -16,9 +15,6 @@ warnings.filterwarnings(
 )
 
 here = os.path.abspath(os.path.dirname(__file__))
-
-# Put this project's apps on the python path
-sys.path.append(here)
 
 ROOT_URLCONF = 'testproj.urls'
 
@@ -47,7 +43,7 @@ INSTALLED_APPS = (
     'django.contrib.sessions',
     'django.contrib.sites',
     'djcelery',
-    'someapp',
+    'testproj.someapp',
     'jobtastic',
     'django_nose',
 )
@@ -80,3 +76,6 @@ CELERY_QUEUES = {
     },
 }
 CELERY_SEND_TASK_ERROR_EMAILS = False
+
+import djcelery
+djcelery.setup_loader()

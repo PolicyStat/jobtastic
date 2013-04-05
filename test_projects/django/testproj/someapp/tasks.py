@@ -20,7 +20,6 @@ class BaseMemLeakyTask(JobtasticTask):
         Let's bloat our thing!
         """
         global leaky_global
-        print len(leaky_global)
 
         for _ in xrange(bloat_factor):
             # 1 million bytes for a MB

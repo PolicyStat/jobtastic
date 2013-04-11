@@ -109,13 +109,7 @@ class BrokenBrokerTestCase(AppCase):
                 async_task = self.task.delay_or_fail(result=1)
             self.assertEqual(async_task.status, states.FAILURE)
 
-    @mock.patch.object(
-        ParrotTask,
-        'calculate_result',
-        autospec=True,
-        return_value=27,
-    )
-    def test_delay_or_run_bad_connection(self, mock_calculate_result):
+    def test_delay_or_run_bad_connection(self):
         transport = PyamqpTransport(mock.Mock())
         # Loop through all of the possible connection errors and ensure they're
         # properly handled
@@ -126,17 +120,11 @@ class BrokenBrokerTestCase(AppCase):
                 autospec=True,
                 side_effect=connection_error("Should be handled"),
             ) as mock_basic_publish:
-                async_task = self.task.delay_or_fail(result=1)
-            self.assertEqual(async_task.status, states.SUCCESS)
-            self.assertEqual(async_task.result, 27)
+                async_task, was_fallback = self.task.delay_or_run(result=27)
+            self.assertTrue(was_fallback)
+            self.assertEqual(async_task, 27)
 
-    @mock.patch.object(
-        ParrotTask,
-        'calculate_result',
-        autospec=True,
-        return_value=27,
-    )
-    def test_delay_or_run_bad_channel(self, mock_calculate_result):
+    def test_delay_or_run_bad_channel(self):
         transport = PyamqpTransport(mock.Mock())
         # Loop through all of the possible connection errors and ensure they're
         # properly handled
@@ -147,7 +135,37 @@ class BrokenBrokerTestCase(AppCase):
                 autospec=True,
                 side_effect=channel_error("Should be handled"),
             ) as mock_basic_publish:
-                async_task = self.task.delay_or_fail(result=1)
+                async_task, was_fallback = self.task.delay_or_run(result=27)
+            self.assertTrue(was_fallback)
+            self.assertEqual(async_task, 27)
+
+    def test_delay_or_eager_bad_connection(self):
+        transport = PyamqpTransport(mock.Mock())
+        # Loop through all of the possible connection errors and ensure they're
+        # properly handled
+        for connection_error in transport.connection_errors:
+            with mock.patch.object(
+                PyamqpChannel,
+                'basic_publish',
+                autospec=True,
+                side_effect=connection_error("Should be handled"),
+            ) as mock_basic_publish:
+                async_task = self.task.delay_or_eager(result=27)
+            self.assertEqual(async_task.status, states.SUCCESS)
+            self.assertEqual(async_task.result, 27)
+
+    def test_delay_or_eager_bad_channel(self):
+        transport = PyamqpTransport(mock.Mock())
+        # Loop through all of the possible connection errors and ensure they're
+        # properly handled
+        for channel_error in transport.channel_errors:
+            with mock.patch.object(
+                PyamqpChannel,
+                'basic_publish',
+                autospec=True,
+                side_effect=channel_error("Should be handled"),
+            ) as mock_basic_publish:
+                async_task = self.task.delay_or_eager(result=27)
             self.assertEqual(async_task.status, states.SUCCESS)
             self.assertEqual(async_task.result, 27)
 
@@ -185,7 +203,21 @@ class WorkingBrokerTestCase(AppCase):
         return_value=1,
     )
     def test_delay_or_run_runs(self, mock_calculate_result):
-        async_task = self.task.delay_or_fail(result=1)
+        async_task, _ = self.task.delay_or_run(result=1)
+        self.assertEqual(async_task.status, states.SUCCESS)
+        self.assertEqual(async_task.result, 1)
+
+        self.assertEqual(mock_calculate_result.call_count, 1)
+
+    @with_eager_tasks
+    @mock.patch.object(
+        ParrotTask,
+        'calculate_result',
+        autospec=True,
+        return_value=1,
+    )
+    def test_delay_or_eager_runs(self, mock_calculate_result):
+        async_task = self.task.delay_or_eager(result=1)
         self.assertEqual(async_task.status, states.SUCCESS)
         self.assertEqual(async_task.result, 1)
 

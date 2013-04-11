@@ -6,9 +6,9 @@ import os
 
 from celery import states
 from celery.tests.utils import AppCase, with_eager_tasks
-from kombu.transport.redis import (
-    Transport as RedisTransport,
-    Channel as RedisChannel,
+from kombu.transport.pyamqp import (
+    Transport as PyamqpTransport,
+    Channel as PyamqpChannel,
 )
 
 from jobtastic import JobtasticTask
@@ -46,7 +46,7 @@ class BrokenBrokerTestCase(AppCase):
         # 'unresponsive'
         # We need to make this modification in 3 places because of version
         # backwards compatibility
-        self._set_broker_host('redis://')
+        self._set_broker_host('amqp://')
         self.app.conf['BROKER_CONNECTION_RETRY'] = False
         self.app.conf['BROKER_POOL_LIMIT'] = 1
         self.app.conf['CELERY_TASK_PUBLISH_RETRY'] = False
@@ -75,18 +75,39 @@ class BrokenBrokerTestCase(AppCase):
         autospec=True,
         side_effect=AssertionError("Should have skipped calculate_result"),
     )
-    def test_delay_or_fail(self, mock_calculate_result):
-        # If there's less than the threshold in growth, we don't spit out any
-        # warnings
-        redis_transport = RedisTransport(mock.Mock())
-        with mock.patch.object(
-            RedisChannel,
-            'basic_publish',
-            autospec=True,
-            side_effect=redis_transport.connection_errors[-1](),
-        ) as mock_basic_publish:
-            async_task = self.task.delay_or_fail(result=1)
-        self.assertEqual(async_task.status, states.FAILURE)
+    def test_delay_or_fail_bad_connection(self, mock_calculate_result):
+        transport = PyamqpTransport(mock.Mock())
+        # Loop through all of the possible connection errors and ensure they're
+        # properly handled
+        for connection_error in transport.connection_errors:
+            with mock.patch.object(
+                PyamqpChannel,
+                'basic_publish',
+                autospec=True,
+                side_effect=connection_error("Should be handled"),
+            ) as mock_basic_publish:
+                async_task = self.task.delay_or_fail(result=1)
+            self.assertEqual(async_task.status, states.FAILURE)
+
+    @mock.patch.object(
+        ParrotTask,
+        'calculate_result',
+        autospec=True,
+        side_effect=AssertionError("Should have skipped calculate_result"),
+    )
+    def test_delay_or_fail_bad_channel(self, mock_calculate_result):
+        transport = PyamqpTransport(mock.Mock())
+        # Loop through all of the possible channel_errors and ensure they're
+        # properly handled
+        for channel_error in transport.channel_errors:
+            with mock.patch.object(
+                PyamqpChannel,
+                'basic_publish',
+                autospec=True,
+                side_effect=channel_error("Should be handled"),
+            ) as mock_basic_publish:
+                async_task = self.task.delay_or_fail(result=1)
+            self.assertEqual(async_task.status, states.FAILURE)
 
     @mock.patch.object(
         ParrotTask,
@@ -94,17 +115,41 @@ class BrokenBrokerTestCase(AppCase):
         autospec=True,
         return_value=27,
     )
-    def test_delay_or_run(self, mock_calculate_result):
-        redis_transport = RedisTransport(mock.Mock())
-        with mock.patch.object(
-            RedisChannel,
-            'basic_publish',
-            autospec=True,
-            side_effect=redis_transport.connection_errors[0](),
-        ) as mock_basic_publish:
-            async_task = self.task.delay_or_fail(result=1)
-        self.assertEqual(async_task.status, states.SUCCESS)
-        self.assertEqual(async_task.result, 27)
+    def test_delay_or_run_bad_connection(self, mock_calculate_result):
+        transport = PyamqpTransport(mock.Mock())
+        # Loop through all of the possible connection errors and ensure they're
+        # properly handled
+        for connection_error in transport.connection_errors:
+            with mock.patch.object(
+                PyamqpChannel,
+                'basic_publish',
+                autospec=True,
+                side_effect=connection_error("Should be handled"),
+            ) as mock_basic_publish:
+                async_task = self.task.delay_or_fail(result=1)
+            self.assertEqual(async_task.status, states.SUCCESS)
+            self.assertEqual(async_task.result, 27)
+
+    @mock.patch.object(
+        ParrotTask,
+        'calculate_result',
+        autospec=True,
+        return_value=27,
+    )
+    def test_delay_or_run_bad_channel(self, mock_calculate_result):
+        transport = PyamqpTransport(mock.Mock())
+        # Loop through all of the possible connection errors and ensure they're
+        # properly handled
+        for channel_error in transport.channel_errors:
+            with mock.patch.object(
+                PyamqpChannel,
+                'basic_publish',
+                autospec=True,
+                side_effect=channel_error("Should be handled"),
+            ) as mock_basic_publish:
+                async_task = self.task.delay_or_fail(result=1)
+            self.assertEqual(async_task.status, states.SUCCESS)
+            self.assertEqual(async_task.result, 27)
 
 
 class WorkingBrokerTestCase(AppCase):

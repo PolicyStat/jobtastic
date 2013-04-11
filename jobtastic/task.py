@@ -17,6 +17,7 @@ import psutil
 from celery import states
 from celery.task import Task
 from celery.result import BaseAsyncResult
+from celery.utils import gen_unique_id
 
 get_task_logger = None
 try:
@@ -82,6 +83,7 @@ def acquire_lock(lock_name):
         return
     yield
     cache.decr(lock_name)
+
 
 
 class JobtasticTask(Task):
@@ -160,15 +162,26 @@ class JobtasticTask(Task):
         try:
             return self.delay(*args, **kwargs)
         except IOError as e:
-            # Take this exception and store it as an error in the result backend.
-            # This unifies the handling of broker-connection errors with any
-            # other type of error that might occur when running the task. So
-            # the same error-handling that might retry a task or display a
-            # useful message to the user can also handle this error.
-            self.backend.store_result(
-                self.task_id, e, status=states.FAILURE)
+            return self.simulate_async_error(e)
 
-            return BaseAsyncResult(self.task_id, self.backend)
+    def simulate_async_error(self, exception):
+        """
+        Take this exception and store it as an error in the result backend.
+        This unifies the handling of broker-connection errors with any other
+        type of error that might occur when running the task. So the same
+        error-handling that might retry a task or display a useful message to
+        the user can also handle this error.
+        """
+        task_id = gen_unique_id()
+        async_result = self.AsyncResult(task_id)
+
+        async_result.backend.store_result(
+            task_id,
+            exception,
+            status=states.FAILURE,
+        )
+
+        return async_result
 
     def delay(self, *args, **kwargs):
         """

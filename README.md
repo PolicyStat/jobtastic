@@ -15,7 +15,7 @@ Jobtastic gives you goodies like:
 * Easy progress estimation/reporting
 * Job status feedback
 * Helper methods for gracefully handling a dead task broker
-  (`delay_or_run` and `delay_or_fail`)
+  (`delay_or_eager` and `delay_or_fail`)
 * Super-easy result caching
 * [Thundering herd](http://en.wikipedia.org/wiki/Thundering_herd_problem) avoidance
 * Integration with a
@@ -326,7 +326,7 @@ and it's not fun to handle that exception every single place
 you might use Celery.
 Jobtastic has your back.
 
-Included are `delay_or_run` and `delay_or_fail` methods
+Included are `delay_or_eager` and `delay_or_fail` methods
 that handle a dead backend
 and do something a little more production-friendly.
 
@@ -336,20 +336,22 @@ all of your arguments must be keyword arguments.
 Note: This is a limitation of the current `signficant_kwargs` implementation,
 and totally fixable if someone wants to submit a pull request.
 
-### delay_or_run
+### delay_or_eager
 
-If your broker is behaving,
+If your broker is behaving itself,
 this guy acts just like `delay()`.
 In the case that your broker is down,
 though,
 it just goes ahead and runs the task in the current process
 and skips sending the task to a worker.
+You get back a nice shiny `EagerResult` object,
+which behaves just like the `AsyncResult` you were expecting.
 If you have a task that realistically only takes a few seconds to run,
-this might be better than giving an error message.
+this might be better than giving yours users an error message.
 
 ### delay_or_fail
 
-Like `delay_or_run`,
+Like `delay_or_eager`,
 this helps you handle a dead broker.
 Instead of running your task in the current process,
 this actually generates a task result representing the failure.
@@ -360,7 +362,7 @@ Maybe send them a fruit basket?
 
 For tasks that might take a while
 or consume a lot of RAM,
-you're probably better off using this than `delay_or_run`
+you're probably better off using this than `delay_or_eager`
 because you don't want to make a resource problem worse.
 
 ## Client Side Handling

@@ -9,6 +9,7 @@ from __future__ import division
 import logging
 import time
 import os
+import warnings
 from contextlib import contextmanager
 from hashlib import md5
 
@@ -136,21 +137,36 @@ class JobtasticTask(Task):
     """
     abstract = True
 
+    def delay_or_eager(self, *args, **kwargs):
+        """
+        Attempt to call self.delay, or if that fails because of a problem with
+        the broker, run the task eagerly and return an EagerResult.
+        """
+        try:
+            result = self.delay(*args, **kwargs)
+        except IOError:
+            result = self.apply(args=args, kwargs=kwargs)
+        return result
+
     def delay_or_run(self, *args, **kwargs):
         """
         Attempt to call self.delay, or if that fails, call self.run.
 
-        Returns a tuple, (result, fallback). ``result`` is the result of
-        calling delay or run. ``fallback`` is a boolean that is True when
-        self.run was called instead of self.delay.
+        Returns a tuple, (result, required_fallback). ``result`` is the result
+        of calling delay or run. ``required_fallback`` is True if the broker
+        failed we had to resort to `self.run`.
         """
+        warnings.warn(
+            "delay_or_run is deprecated. Please use delay_or_eager",
+            DeprecationWarning,
+        )
         try:
             result = self.delay(*args, **kwargs)
-            fallback = False
+            required_fallback = False
         except IOError:
             result = self.run(*args, **kwargs)
-            fallback = True
-        return result, fallback
+            required_fallback = True
+        return result, required_fallback
 
     def delay_or_fail(self, *args, **kwargs):
         """

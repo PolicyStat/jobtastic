@@ -66,7 +66,11 @@ BROKER_CONNECTION_MAX_RETRIES = 1
 # To prevent that, just disable it
 BROKER_POOL_LIMIT = 0
 CELERY_RESULT_BACKEND = 'cache'
-CELERY_CACHE_BACKEND = 'memory'
+from celery import VERSION
+if VERSION[0] < 3:
+    CELERY_CACHE_BACKEND = 'dummy://'
+else:
+    CELERY_CACHE_BACKEND = 'memory'
 
 CELERY_SEND_TASK_ERROR_EMAILS = False
 

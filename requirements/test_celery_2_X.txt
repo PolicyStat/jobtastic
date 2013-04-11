@@ -1,3 +1,4 @@
 celery>=2.5,<3.0
+psutil
 unittest2
 mock

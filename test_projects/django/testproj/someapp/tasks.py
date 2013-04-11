@@ -42,3 +42,16 @@ class MemLeakyDisabledWarningTask(BaseMemLeakyTask):
 
 class MemLeakyDefaultedTask(BaseMemLeakyTask):
     pass
+
+
+class ParrotTask(JobtasticTask):
+    """
+    Just return whatever is passed in as the result.
+    """
+    significant_kwargs = [
+        ('result', str),
+    ]
+    herd_avoidance_timeout = 0
+
+    def calculate_result(self, result, **kwargs):
+        return result

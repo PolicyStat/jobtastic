@@ -66,14 +66,8 @@ BROKER_CONNECTION_MAX_RETRIES = 1
 # To prevent that, just disable it
 BROKER_POOL_LIMIT = 0
 CELERY_RESULT_BACKEND = 'cache'
-CELERY_CACHE_BACKEND = 'locmem://'
-CELERY_ALWAYS_EAGER = True
+CELERY_CACHE_BACKEND = 'memory'
 
-CELERY_QUEUES = {
-    "testcelery": {
-        "binding_key": "testcelery",
-    },
-}
 CELERY_SEND_TASK_ERROR_EMAILS = False
 
 import djcelery

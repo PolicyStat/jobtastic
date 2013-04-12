@@ -1,15 +1,26 @@
+import inspect
+import os
 
 import mock
 from unittest2 import TestCase
 
-import os
 
 from celery import states
 from celery.tests.utils import AppCase, with_eager_tasks
-from kombu.transport.pyamqp import (
-    Transport as PyamqpTransport,
-    Channel as PyamqpChannel,
-)
+from kombu.exceptions import StdChannelError
+
+USING_CELERY_2_X = False
+try:
+    from kombu.transport.pyamqp import (
+        Transport as AmqpTransport,
+        Channel as AmqpChannel,
+    )
+except ImportError:
+    USING_CELERY_2_X = True
+    from kombu.transport.amqplib import (
+        Transport as AmqpTransport,
+        Channel as AmqpChannel,
+    )
 
 from jobtastic import JobtasticTask
 
@@ -27,7 +38,32 @@ class ParrotTask(JobtasticTask):
         return result
 
 
+def args_guesser(func):
+    # TODO: figure out how to use the inspect module getargspec on classes so
+    # we don't need to do this
+    for num_args in xrange(5):
+        try:
+            return func(*['foo' for _ in xrange(num_args)])
+        except TypeError:
+            pass
+    from nose.tools import set_trace; set_trace()
+    return func()
+
+
 class BrokenBrokerTestCase(AppCase):
+    if USING_CELERY_2_X:
+        connection_errors = [
+            IOError,
+            OSError,
+            AttributeError,
+        ]
+        channel_errors = [
+            StdChannelError,
+        ]
+    else:
+        connection_errors = AmqpTransport(mock.Mock()).connection_errors
+        channel_errors = AmqpTransport(mock.Mock()).channel_errors
+
     def _set_broker_host(self, new_value):
         os.environ['CELERY_BROKER_URL'] = new_value
         self.app.conf.BROKER_URL = new_value
@@ -76,15 +112,14 @@ class BrokenBrokerTestCase(AppCase):
         side_effect=AssertionError("Should have skipped calculate_result"),
     )
     def test_delay_or_fail_bad_connection(self, mock_calculate_result):
-        transport = PyamqpTransport(mock.Mock())
         # Loop through all of the possible connection errors and ensure they're
         # properly handled
-        for connection_error in transport.connection_errors:
+        for error in self.connection_errors:
             with mock.patch.object(
-                PyamqpChannel,
+                AmqpChannel,
                 'basic_publish',
                 autospec=True,
-                side_effect=connection_error("Should be handled"),
+                side_effect=error("Should be handled"),
             ) as mock_basic_publish:
                 async_task = self.task.delay_or_fail(result=1)
             self.assertEqual(async_task.status, states.FAILURE)
@@ -96,74 +131,74 @@ class BrokenBrokerTestCase(AppCase):
         side_effect=AssertionError("Should have skipped calculate_result"),
     )
     def test_delay_or_fail_bad_channel(self, mock_calculate_result):
-        transport = PyamqpTransport(mock.Mock())
+        transport = AmqpTransport(mock.Mock())
         # Loop through all of the possible channel_errors and ensure they're
         # properly handled
-        for channel_error in transport.channel_errors:
+        for error in self.channel_errors:
             with mock.patch.object(
-                PyamqpChannel,
+                AmqpChannel,
                 'basic_publish',
                 autospec=True,
-                side_effect=channel_error("Should be handled"),
+                side_effect=error("Should be handled"),
             ) as mock_basic_publish:
                 async_task = self.task.delay_or_fail(result=1)
             self.assertEqual(async_task.status, states.FAILURE)
 
     def test_delay_or_run_bad_connection(self):
-        transport = PyamqpTransport(mock.Mock())
+        transport = AmqpTransport(mock.Mock())
         # Loop through all of the possible connection errors and ensure they're
         # properly handled
-        for connection_error in transport.connection_errors:
+        for error in self.connection_errors:
             with mock.patch.object(
-                PyamqpChannel,
+                AmqpChannel,
                 'basic_publish',
                 autospec=True,
-                side_effect=connection_error("Should be handled"),
+                side_effect=error("Should be handled"),
             ) as mock_basic_publish:
                 async_task, was_fallback = self.task.delay_or_run(result=27)
             self.assertTrue(was_fallback)
             self.assertEqual(async_task, 27)
 
     def test_delay_or_run_bad_channel(self):
-        transport = PyamqpTransport(mock.Mock())
+        transport = AmqpTransport(mock.Mock())
         # Loop through all of the possible connection errors and ensure they're
         # properly handled
-        for channel_error in transport.channel_errors:
+        for error in self.channel_errors:
             with mock.patch.object(
-                PyamqpChannel,
+                AmqpChannel,
                 'basic_publish',
                 autospec=True,
-                side_effect=channel_error("Should be handled"),
+                side_effect=error("Should be handled"),
             ) as mock_basic_publish:
                 async_task, was_fallback = self.task.delay_or_run(result=27)
             self.assertTrue(was_fallback)
             self.assertEqual(async_task, 27)
 
     def test_delay_or_eager_bad_connection(self):
-        transport = PyamqpTransport(mock.Mock())
+        transport = AmqpTransport(mock.Mock())
         # Loop through all of the possible connection errors and ensure they're
         # properly handled
-        for connection_error in transport.connection_errors:
+        for error in self.connection_errors:
             with mock.patch.object(
-                PyamqpChannel,
+                AmqpChannel,
                 'basic_publish',
                 autospec=True,
-                side_effect=connection_error("Should be handled"),
+                side_effect=error("Should be handled"),
             ) as mock_basic_publish:
                 async_task = self.task.delay_or_eager(result=27)
             self.assertEqual(async_task.status, states.SUCCESS)
             self.assertEqual(async_task.result, 27)
 
     def test_delay_or_eager_bad_channel(self):
-        transport = PyamqpTransport(mock.Mock())
+        transport = AmqpTransport(mock.Mock())
         # Loop through all of the possible connection errors and ensure they're
         # properly handled
-        for channel_error in transport.channel_errors:
+        for error in self.channel_errors:
             with mock.patch.object(
-                PyamqpChannel,
+                AmqpChannel,
                 'basic_publish',
                 autospec=True,
-                side_effect=channel_error("Should be handled"),
+                side_effect=error("Should be handled"),
             ) as mock_basic_publish:
                 async_task = self.task.delay_or_eager(result=27)
             self.assertEqual(async_task.status, states.SUCCESS)

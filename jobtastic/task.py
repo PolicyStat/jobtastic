@@ -9,14 +9,18 @@ from __future__ import division
 import logging
 import time
 import os
+import sys
+import warnings
 from contextlib import contextmanager
 from hashlib import md5
 
 import psutil
 
 from celery import states
+from celery.datastructures import ExceptionInfo
 from celery.task import Task
 from celery.result import BaseAsyncResult
+from celery.utils import gen_unique_id
 
 get_task_logger = None
 try:
@@ -84,6 +88,7 @@ def acquire_lock(lock_name):
     cache.decr(lock_name)
 
 
+
 class JobtasticTask(Task):
     """
     A base ``Celery.Task`` class that provides some common niceties for running
@@ -134,21 +139,38 @@ class JobtasticTask(Task):
     """
     abstract = True
 
+    def delay_or_eager(self, *args, **kwargs):
+        """
+        Attempt to call self.delay, or if that fails because of a problem with
+        the broker, run the task eagerly and return an EagerResult.
+        """
+        possible_broker_errors = self._get_possible_broker_errors_tuple()
+        try:
+            result = self.apply_async(args=args, kwargs=kwargs)
+        except possible_broker_errors:
+            result = self.apply(args=args, kwargs=kwargs)
+        return result
+
     def delay_or_run(self, *args, **kwargs):
         """
         Attempt to call self.delay, or if that fails, call self.run.
 
-        Returns a tuple, (result, fallback). ``result`` is the result of
-        calling delay or run. ``fallback`` is a boolean that is True when
-        self.run was called instead of self.delay.
+        Returns a tuple, (result, required_fallback). ``result`` is the result
+        of calling delay or run. ``required_fallback`` is True if the broker
+        failed we had to resort to `self.run`.
         """
+        warnings.warn(
+            "delay_or_run is deprecated. Please use delay_or_eager",
+            DeprecationWarning,
+        )
+        possible_broker_errors = self._get_possible_broker_errors_tuple()
         try:
-            result = self.delay(*args, **kwargs)
-            fallback = False
-        except IOError:
+            result = self.apply_async(args=args, kwargs=kwargs)
+            required_fallback = False
+        except possible_broker_errors:
             result = self.run(*args, **kwargs)
-            fallback = True
-        return result, fallback
+            required_fallback = True
+        return result, required_fallback
 
     def delay_or_fail(self, *args, **kwargs):
         """
@@ -157,20 +179,46 @@ class JobtasticTask(Task):
         us to seamlessly handle errors on task creation the same way we handle
         errors when a task runs, simplifying the user interface.
         """
+        possible_broker_errors = self._get_possible_broker_errors_tuple()
         try:
-            return self.delay(*args, **kwargs)
-        except IOError as e:
-            # Take this exception and store it as an error in the result backend.
-            # This unifies the handling of broker-connection errors with any
-            # other type of error that might occur when running the task. So
-            # the same error-handling that might retry a task or display a
-            # useful message to the user can also handle this error.
-            self.backend.store_result(
-                self.task_id, e, status=states.FAILURE)
+            result = self.apply_async(args=args, kwargs=kwargs)
+        except possible_broker_errors as e:
+            return self.simulate_async_error(e)
 
-            return BaseAsyncResult(self.task_id, self.backend)
+    def _get_possible_broker_errors_tuple(self):
+        if hasattr(self.app, 'connection'):
+            dummy_connection = self.app.connection()
+        else:
+            # Celery 2.5 uses `broker_connection` instead
+            dummy_connection = self.app.broker_connection()
 
-    def delay(self, *args, **kwargs):
+        possible_errors = []
+        possible_errors.extend(dummy_connection.connection_errors)
+        possible_errors.extend(dummy_connection.channel_errors)
+
+        return tuple(possible_errors)
+
+    def simulate_async_error(self, exception):
+        """
+        Take this exception and store it as an error in the result backend.
+        This unifies the handling of broker-connection errors with any other
+        type of error that might occur when running the task. So the same
+        error-handling that might retry a task or display a useful message to
+        the user can also handle this error.
+        """
+        task_id = gen_unique_id()
+        async_result = self.AsyncResult(task_id)
+        einfo = ExceptionInfo(sys.exc_info())
+
+        async_result.backend.mark_as_failure(
+            task_id,
+            exception,
+            traceback=einfo.traceback,
+        )
+
+        return async_result
+
+    def apply_async(self, args, kwargs, **options):
         """
         Put this task on the Celery queue as a singleton. Only one of this type
         of task with its distinguishing args/kwargs will be allowed on the
@@ -178,9 +226,6 @@ class JobtasticTask(Task):
         still running will just latch on to the results of the running task by
         synchronizing the task uuid. Additionally, identical task calls will
         return those results for the next ``cache_duration`` seconds.
-
-        Passing a ``cache_duration`` keyword argument controls how long
-        identical task calls will latch on to previously cached results.
         """
         self._validate_required_class_vars()
 
@@ -205,8 +250,11 @@ class JobtasticTask(Task):
         # start the task, ensuring there isn't a race condition that could
         # result in multiple identical tasks being fired at once.
         with acquire_lock('lock:%s' % cache_key):
-            task_meta = super(JobtasticTask, self).delay(
-                *args, **kwargs)
+            task_meta = super(JobtasticTask, self).apply_async(
+                args,
+                kwargs,
+                **options
+            )
             logging.info('Current status: %s', task_meta.status)
             if task_meta.status in [PROGRESS, states.PENDING]:
                 cache.set(

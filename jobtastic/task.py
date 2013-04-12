@@ -9,6 +9,7 @@ from __future__ import division
 import logging
 import time
 import os
+import sys
 import warnings
 from contextlib import contextmanager
 from hashlib import md5
@@ -16,6 +17,7 @@ from hashlib import md5
 import psutil
 
 from celery import states
+from celery.datastructures import ExceptionInfo
 from celery.task import Task
 from celery.result import BaseAsyncResult
 from celery.utils import gen_unique_id
@@ -206,11 +208,12 @@ class JobtasticTask(Task):
         """
         task_id = gen_unique_id()
         async_result = self.AsyncResult(task_id)
+        einfo = ExceptionInfo(sys.exc_info())
 
-        async_result.backend.store_result(
+        async_result.backend.mark_as_failure(
             task_id,
             exception,
-            status=states.FAILURE,
+            traceback=einfo.traceback,
         )
 
         return async_result

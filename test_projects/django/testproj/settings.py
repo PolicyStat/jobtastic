@@ -56,25 +56,24 @@ NOSE_ARGS = [
 TEST_RUNNER = 'django_nose.run_tests'
 
 # Celery Configuration
+BROKER_URL = 'memory://'
+BROKER_CONNECTION_TIMEOUT = 1
+BROKER_CONNECTION_RETRY = False
+BROKER_CONNECTION_MAX_RETRIES = 1
+# The default BROKER_POOL_LIMIT is 10, broker connections are not
+# properly cleaned up on error, so the tests will run out of
+# connections and result in one test hanging forever
+# To prevent that, just disable it
+BROKER_POOL_LIMIT = 0
+CELERY_RESULT_BACKEND = 'cache'
+from celery import VERSION
+if VERSION[0] < 3:
+    # Use Django's syntax instead of Celery's, which would be:
+    # CELERY_CACHE_BACKEND = 'dummy://'
+    CELERY_CACHE_BACKEND = 'locmem://'
+else:
+    CELERY_CACHE_BACKEND = 'memory'
 
-BROKER_HOST = "localhost"
-BROKER_PORT = 5672
-BROKER_VHOST = "/"
-BROKER_USER = "guest"
-BROKER_PASSWORD = "guest"
-
-TT_HOST = "localhost"
-TT_PORT = 1978
-
-CELERY_DEFAULT_EXCHANGE = "testcelery"
-CELERY_DEFAULT_ROUTING_KEY = "testcelery"
-CELERY_DEFAULT_QUEUE = "testcelery"
-
-CELERY_QUEUES = {
-    "testcelery": {
-        "binding_key": "testcelery",
-    },
-}
 CELERY_SEND_TASK_ERROR_EMAILS = False
 
 import djcelery

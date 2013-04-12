@@ -121,7 +121,7 @@ def lets_divide(request):
 	step = 10
 
 	# If we can't connect to the backend, let's not just 500. k?
-	result = LotsOfDivisionTask().delay_or_fail(
+	result = LotsOfDivisionTask.delay_or_fail(
 		numerators=range(0, step * iterations * 2, step * 2),
 		denominators=range(1, step * iterations, step),
 	)
@@ -150,7 +150,7 @@ def lets_divide():
 	iterations = request.args.get('iterations', 1000)
 	step = 10
 
-	result = LotsOfDivisionTask().delay_or_fail(
+	result = LotsOfDivisionTask.delay_or_fail(
 		numerators=range(0, step * iterations * 2, step * 2),
 		denominators=range(1, step * iterations, step),
 	)

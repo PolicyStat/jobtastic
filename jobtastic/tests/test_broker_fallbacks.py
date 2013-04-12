@@ -6,7 +6,7 @@ from unittest2 import TestCase
 
 
 from celery import states
-from celery.tests.utils import AppCase, with_eager_tasks
+from celery.tests.utils import AppCase, eager_tasks
 
 USING_CELERY_2_X = False
 try:
@@ -66,23 +66,16 @@ class BrokenBrokerTestCase(AppCase):
         self.app.conf['BROKER_POOL_LIMIT'] = 1
         self.app.conf['CELERY_TASK_PUBLISH_RETRY'] = False
 
-        self.task = ParrotTask()
-
-        # TODO: Figure out how to mock `app.producer_or_acquire` so that we can
-        # use a broken `publish_task` to trigger errors.
-        # https://github.com/celery/celery/blob/master/celery/app/task.py#L478
-
-
-        # TODO: use kombu.connection:Connection.transport.connection_errors and
-        # kombu.connection:Connection.transport.channel_errors to decide what
-        # to catch in the error handler
-        # side_effect=self.app.amqp.TaskProducer.connection.channel.channel_errors[0]("Error sending via the channel")
+        self.task = ParrotTask
 
     def teardown(self):
         del self.app.amqp
         self.app._pool = None
 
         self._set_broker_host(self.old_broker_host)
+
+    def test_sanity(self):
+        self.assertRaises(IOError, self.task.delay, result=1)
 
     @mock.patch.object(
         ParrotTask,
@@ -165,16 +158,15 @@ class BrokenBrokerTestCase(AppCase):
 
 class WorkingBrokerTestCase(AppCase):
     def setup(self):
-        self.task = ParrotTask()
+        self.task = ParrotTask
 
-    @with_eager_tasks
     def test_sanity(self):
         # The task actually runs
-        async_task = self.task.delay(result=1)
+        with eager_tasks():
+            async_task = self.task.delay(result=1)
         self.assertEqual(async_task.status, states.SUCCESS)
         self.assertEqual(async_task.result, 1)
 
-    @with_eager_tasks
     @mock.patch.object(
         ParrotTask,
         'calculate_result',
@@ -182,13 +174,13 @@ class WorkingBrokerTestCase(AppCase):
         return_value=1,
     )
     def test_delay_or_fail_runs(self, mock_calculate_result):
-        async_task = self.task.delay_or_fail(result=1)
+        with eager_tasks():
+            async_task = self.task.delay_or_fail(result=1)
         self.assertEqual(async_task.status, states.SUCCESS)
         self.assertEqual(async_task.result, 1)
 
         self.assertEqual(mock_calculate_result.call_count, 1)
 
-    @with_eager_tasks
     @mock.patch.object(
         ParrotTask,
         'calculate_result',
@@ -196,13 +188,13 @@ class WorkingBrokerTestCase(AppCase):
         return_value=1,
     )
     def test_delay_or_run_runs(self, mock_calculate_result):
-        async_task, _ = self.task.delay_or_run(result=1)
+        with eager_tasks():
+            async_task, _ = self.task.delay_or_run(result=1)
         self.assertEqual(async_task.status, states.SUCCESS)
         self.assertEqual(async_task.result, 1)
 
         self.assertEqual(mock_calculate_result.call_count, 1)
 
-    @with_eager_tasks
     @mock.patch.object(
         ParrotTask,
         'calculate_result',
@@ -210,7 +202,8 @@ class WorkingBrokerTestCase(AppCase):
         return_value=1,
     )
     def test_delay_or_eager_runs(self, mock_calculate_result):
-        async_task = self.task.delay_or_eager(result=1)
+        with eager_tasks():
+            async_task = self.task.delay_or_eager(result=1)
         self.assertEqual(async_task.status, states.SUCCESS)
         self.assertEqual(async_task.result, 1)
 

@@ -139,6 +139,7 @@ class JobtasticTask(Task):
     """
     abstract = True
 
+    @classmethod
     def delay_or_eager(self, *args, **kwargs):
         """
         Attempt to call self.delay, or if that fails because of a problem with
@@ -146,11 +147,11 @@ class JobtasticTask(Task):
         """
         possible_broker_errors = self._get_possible_broker_errors_tuple()
         try:
-            result = self.apply_async(args=args, kwargs=kwargs)
+            return self.apply_async(args=args, kwargs=kwargs)
         except possible_broker_errors:
-            result = self.apply(args=args, kwargs=kwargs)
-        return result
+            return self.apply(args=args, kwargs=kwargs)
 
+    @classmethod
     def delay_or_run(self, *args, **kwargs):
         """
         Attempt to call self.delay, or if that fails, call self.run.
@@ -168,10 +169,11 @@ class JobtasticTask(Task):
             result = self.apply_async(args=args, kwargs=kwargs)
             required_fallback = False
         except possible_broker_errors:
-            result = self.run(*args, **kwargs)
+            result = self().run(*args, **kwargs)
             required_fallback = True
         return result, required_fallback
 
+    @classmethod
     def delay_or_fail(self, *args, **kwargs):
         """
         Attempt to call self.delay, but if that fails with an exception, we
@@ -181,10 +183,11 @@ class JobtasticTask(Task):
         """
         possible_broker_errors = self._get_possible_broker_errors_tuple()
         try:
-            result = self.apply_async(args=args, kwargs=kwargs)
+            return self.apply_async(args=args, kwargs=kwargs)
         except possible_broker_errors as e:
             return self.simulate_async_error(e)
 
+    @classmethod
     def _get_possible_broker_errors_tuple(self):
         if hasattr(self.app, 'connection'):
             dummy_connection = self.app.connection()
@@ -198,6 +201,7 @@ class JobtasticTask(Task):
 
         return tuple(possible_errors)
 
+    @classmethod
     def simulate_async_error(self, exception):
         """
         Take this exception and store it as an error in the result backend.
@@ -218,6 +222,7 @@ class JobtasticTask(Task):
 
         return async_result
 
+    @classmethod
     def apply_async(self, args, kwargs, **options):
         """
         Put this task on the Celery queue as a singleton. Only one of this type
@@ -238,13 +243,13 @@ class JobtasticTask(Task):
             # did the work
             logging.info(
                 'Found existing cached and completed task: %s', task_id)
-            return BaseAsyncResult(task_id, self.backend)
+            return self.AsyncResult(task_id)
 
         # Check for an in-progress equivalent task to avoid duplicating work
         task_id = cache.get('herd:%s' % cache_key)
         if task_id:
             logging.info('Found existing in-progress task: %s', task_id)
-            return BaseAsyncResult(task_id, self.backend)
+            return self.AsyncResult(task_id)
 
         # It's not cached and it's not already running. Use an atomic lock to
         # start the task, ensuring there isn't a race condition that could
@@ -398,6 +403,7 @@ class JobtasticTask(Task):
             "their own calculate_result"
         ))
 
+    @classmethod
     def _validate_required_class_vars(self):
         """
         Ensure that this subclass has defined all of the required class
@@ -424,6 +430,7 @@ class JobtasticTask(Task):
     def _break_thundering_herd_cache(self):
         cache.delete('herd:%s' % self.cache_key)
 
+    @classmethod
     def _get_cache_key(self, **kwargs):
         """
         Take this task's configured ``significant_kwargs`` and build a hash

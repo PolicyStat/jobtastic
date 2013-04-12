@@ -21,6 +21,19 @@ Changelog
 * `delay_or_fail` now properly sets the traceback for inspection via
   `get_traceback`.
 
+Backwards Incompatible Changes
+++++++++++++++++++++++++++++++
+
+The ``delay_or_FOO`` methods are now proper class methods. Previously, they
+were special snowflakes and different from normal Celery tasks, which was bad.
+Basically, if you used to have::
+
+    MyTask().delay_or_fail()
+
+now you'll have::
+
+    MyTask.delay_or_fail()
+
 0.1.1
 -----
 

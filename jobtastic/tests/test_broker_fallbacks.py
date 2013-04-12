@@ -7,7 +7,7 @@ from unittest2 import TestCase
 
 from celery import states
 from celery.tests.utils import AppCase, with_eager_tasks
-from kombu.exceptions import StdChannelError
+from kombu.exceptions import StdChannelError, StdConnectionError
 
 USING_CELERY_2_X = False
 try:
@@ -38,32 +38,7 @@ class ParrotTask(JobtasticTask):
         return result
 
 
-def args_guesser(func):
-    # TODO: figure out how to use the inspect module getargspec on classes so
-    # we don't need to do this
-    for num_args in xrange(5):
-        try:
-            return func(*['foo' for _ in xrange(num_args)])
-        except TypeError:
-            pass
-    from nose.tools import set_trace; set_trace()
-    return func()
-
-
 class BrokenBrokerTestCase(AppCase):
-    if USING_CELERY_2_X:
-        connection_errors = [
-            IOError,
-            OSError,
-            AttributeError,
-        ]
-        channel_errors = [
-            StdChannelError,
-        ]
-    else:
-        connection_errors = AmqpTransport(mock.Mock()).connection_errors
-        channel_errors = AmqpTransport(mock.Mock()).channel_errors
-
     def _set_broker_host(self, new_value):
         os.environ['CELERY_BROKER_URL'] = new_value
         self.app.conf.BROKER_URL = new_value
@@ -114,15 +89,14 @@ class BrokenBrokerTestCase(AppCase):
     def test_delay_or_fail_bad_connection(self, mock_calculate_result):
         # Loop through all of the possible connection errors and ensure they're
         # properly handled
-        for error in self.connection_errors:
-            with mock.patch.object(
-                AmqpChannel,
-                'basic_publish',
-                autospec=True,
-                side_effect=error("Should be handled"),
-            ) as mock_basic_publish:
-                async_task = self.task.delay_or_fail(result=1)
-            self.assertEqual(async_task.status, states.FAILURE)
+        with mock.patch.object(
+            AmqpChannel,
+            'basic_publish',
+            autospec=True,
+            side_effect=StdConnectionError("Should be handled"),
+        ) as mock_basic_publish:
+            async_task = self.task.delay_or_fail(result=1)
+        self.assertEqual(async_task.status, states.FAILURE)
 
     @mock.patch.object(
         ParrotTask,
@@ -131,78 +105,58 @@ class BrokenBrokerTestCase(AppCase):
         side_effect=AssertionError("Should have skipped calculate_result"),
     )
     def test_delay_or_fail_bad_channel(self, mock_calculate_result):
-        transport = AmqpTransport(mock.Mock())
-        # Loop through all of the possible channel_errors and ensure they're
-        # properly handled
-        for error in self.channel_errors:
-            with mock.patch.object(
-                AmqpChannel,
-                'basic_publish',
-                autospec=True,
-                side_effect=error("Should be handled"),
-            ) as mock_basic_publish:
-                async_task = self.task.delay_or_fail(result=1)
-            self.assertEqual(async_task.status, states.FAILURE)
+        with mock.patch.object(
+            AmqpChannel,
+            'basic_publish',
+            autospec=True,
+            side_effect=StdChannelError("Should be handled"),
+        ) as mock_basic_publish:
+            async_task = self.task.delay_or_fail(result=1)
+        self.assertEqual(async_task.status, states.FAILURE)
 
     def test_delay_or_run_bad_connection(self):
-        transport = AmqpTransport(mock.Mock())
-        # Loop through all of the possible connection errors and ensure they're
-        # properly handled
-        for error in self.connection_errors:
-            with mock.patch.object(
-                AmqpChannel,
-                'basic_publish',
-                autospec=True,
-                side_effect=error("Should be handled"),
-            ) as mock_basic_publish:
-                async_task, was_fallback = self.task.delay_or_run(result=27)
-            self.assertTrue(was_fallback)
-            self.assertEqual(async_task, 27)
+        with mock.patch.object(
+            AmqpChannel,
+            'basic_publish',
+            autospec=True,
+            side_effect=StdConnectionError("Should be handled"),
+        ) as mock_basic_publish:
+            async_task, was_fallback = self.task.delay_or_run(result=27)
+        self.assertTrue(was_fallback)
+        self.assertEqual(async_task, 27)
 
     def test_delay_or_run_bad_channel(self):
-        transport = AmqpTransport(mock.Mock())
-        # Loop through all of the possible connection errors and ensure they're
-        # properly handled
-        for error in self.channel_errors:
-            with mock.patch.object(
-                AmqpChannel,
-                'basic_publish',
-                autospec=True,
-                side_effect=error("Should be handled"),
-            ) as mock_basic_publish:
-                async_task, was_fallback = self.task.delay_or_run(result=27)
-            self.assertTrue(was_fallback)
-            self.assertEqual(async_task, 27)
+        with mock.patch.object(
+            AmqpChannel,
+            'basic_publish',
+            autospec=True,
+            side_effect=StdChannelError("Should be handled"),
+        ) as mock_basic_publish:
+            async_task, was_fallback = self.task.delay_or_run(result=27)
+        self.assertTrue(was_fallback)
+        self.assertEqual(async_task, 27)
 
     def test_delay_or_eager_bad_connection(self):
-        transport = AmqpTransport(mock.Mock())
-        # Loop through all of the possible connection errors and ensure they're
-        # properly handled
-        for error in self.connection_errors:
-            with mock.patch.object(
-                AmqpChannel,
-                'basic_publish',
-                autospec=True,
-                side_effect=error("Should be handled"),
-            ) as mock_basic_publish:
-                async_task = self.task.delay_or_eager(result=27)
-            self.assertEqual(async_task.status, states.SUCCESS)
-            self.assertEqual(async_task.result, 27)
+        with mock.patch.object(
+            AmqpChannel,
+            'basic_publish',
+            autospec=True,
+            side_effect=StdConnectionError("Should be handled"),
+        ) as mock_basic_publish:
+            async_task = self.task.delay_or_eager(result=27)
+        self.assertEqual(async_task.status, states.SUCCESS)
+        self.assertEqual(async_task.result, 27)
 
     def test_delay_or_eager_bad_channel(self):
-        transport = AmqpTransport(mock.Mock())
-        # Loop through all of the possible connection errors and ensure they're
-        # properly handled
-        for error in self.channel_errors:
-            with mock.patch.object(
-                AmqpChannel,
-                'basic_publish',
-                autospec=True,
-                side_effect=error("Should be handled"),
-            ) as mock_basic_publish:
-                async_task = self.task.delay_or_eager(result=27)
-            self.assertEqual(async_task.status, states.SUCCESS)
-            self.assertEqual(async_task.result, 27)
+        with mock.patch.object(
+            AmqpChannel,
+            'basic_publish',
+            autospec=True,
+            side_effect=StdChannelError("Should be handled"),
+        ) as mock_basic_publish:
+            async_task = self.task.delay_or_eager(result=27)
+        self.assertEqual(async_task.status, states.SUCCESS)
+        self.assertEqual(async_task.result, 27)
 
 
 class WorkingBrokerTestCase(AppCase):

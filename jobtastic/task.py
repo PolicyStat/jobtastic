@@ -142,9 +142,10 @@ class JobtasticTask(Task):
         Attempt to call self.delay, or if that fails because of a problem with
         the broker, run the task eagerly and return an EagerResult.
         """
+        possible_broker_errors = self._get_possible_broker_errors_tuple()
         try:
-            result = self.delay(*args, **kwargs)
-        except IOError:
+            result = self.apply_async(args=args, kwargs=kwargs)
+        except possible_broker_errors:
             result = self.apply(args=args, kwargs=kwargs)
         return result
 
@@ -160,10 +161,11 @@ class JobtasticTask(Task):
             "delay_or_run is deprecated. Please use delay_or_eager",
             DeprecationWarning,
         )
+        possible_broker_errors = self._get_possible_broker_errors_tuple()
         try:
-            result = self.delay(*args, **kwargs)
+            result = self.apply_async(args=args, kwargs=kwargs)
             required_fallback = False
-        except IOError:
+        except possible_broker_errors:
             result = self.run(*args, **kwargs)
             required_fallback = True
         return result, required_fallback
@@ -175,10 +177,20 @@ class JobtasticTask(Task):
         us to seamlessly handle errors on task creation the same way we handle
         errors when a task runs, simplifying the user interface.
         """
+        possible_broker_errors = self._get_possible_broker_errors_tuple()
         try:
-            return self.delay(*args, **kwargs)
-        except IOError as e:
+            result = self.apply_async(args=args, kwargs=kwargs)
+        except possible_broker_errors as e:
             return self.simulate_async_error(e)
+
+    def _get_possible_broker_errors_tuple(self):
+        dummy_connection = self.app.connection()
+
+        possible_errors = []
+        possible_errors.extend(dummy_connection.connection_errors)
+        possible_errors.extend(dummy_connection.channel_errors)
+
+        return tuple(possible_errors)
 
     def simulate_async_error(self, exception):
         """
@@ -199,7 +211,7 @@ class JobtasticTask(Task):
 
         return async_result
 
-    def delay(self, *args, **kwargs):
+    def apply_async(self, args, kwargs, **options):
         """
         Put this task on the Celery queue as a singleton. Only one of this type
         of task with its distinguishing args/kwargs will be allowed on the
@@ -207,9 +219,6 @@ class JobtasticTask(Task):
         still running will just latch on to the results of the running task by
         synchronizing the task uuid. Additionally, identical task calls will
         return those results for the next ``cache_duration`` seconds.
-
-        Passing a ``cache_duration`` keyword argument controls how long
-        identical task calls will latch on to previously cached results.
         """
         self._validate_required_class_vars()
 
@@ -234,8 +243,11 @@ class JobtasticTask(Task):
         # start the task, ensuring there isn't a race condition that could
         # result in multiple identical tasks being fired at once.
         with acquire_lock('lock:%s' % cache_key):
-            task_meta = super(JobtasticTask, self).delay(
-                *args, **kwargs)
+            task_meta = super(JobtasticTask, self).apply_async(
+                args,
+                kwargs,
+                **options
+            )
             logging.info('Current status: %s', task_meta.status)
             if task_meta.status in [PROGRESS, states.PENDING]:
                 cache.set(

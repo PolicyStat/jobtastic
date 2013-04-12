@@ -184,7 +184,11 @@ class JobtasticTask(Task):
             return self.simulate_async_error(e)
 
     def _get_possible_broker_errors_tuple(self):
-        dummy_connection = self.app.connection()
+        if hasattr(self.app, 'connection'):
+            dummy_connection = self.app.connection()
+        else:
+            # Celery 2.5 uses `broker_connection` instead
+            dummy_connection = self.app.broker_connection()
 
         possible_errors = []
         possible_errors.extend(dummy_connection.connection_errors)

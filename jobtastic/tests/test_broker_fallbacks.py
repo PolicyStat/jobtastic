@@ -7,7 +7,6 @@ from unittest2 import TestCase
 
 from celery import states
 from celery.tests.utils import AppCase, with_eager_tasks
-from kombu.exceptions import StdChannelError, StdConnectionError
 
 USING_CELERY_2_X = False
 try:
@@ -15,12 +14,17 @@ try:
         Transport as AmqpTransport,
         Channel as AmqpChannel,
     )
+    from kombu.exceptions import StdChannelError, StdConnectionError
 except ImportError:
     USING_CELERY_2_X = True
     from kombu.transport.amqplib import (
         Transport as AmqpTransport,
         Channel as AmqpChannel,
     )
+    from kombu.exceptions import StdChannelError
+    # Kombu 2.1 doesn' thave a StdConnectionError, but the 2.1 amqp Transport
+    # uses an IOError, so we'll just test with that
+    StdConnectionError = IOError
 
 from jobtastic import JobtasticTask
 

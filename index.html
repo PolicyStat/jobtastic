@@ -58,7 +58,7 @@ or if your users need to wait while they compute their results.</p>
 <li>Easy progress estimation/reporting</li>
 <li>Job status feedback</li>
 <li>Helper methods for gracefully handling a dead task broker
-(<code>delay_or_run</code> and <code>delay_or_fail</code>)</li>
+(<code>delay_or_eager</code> and <code>delay_or_fail</code>)</li>
 <li>Super-easy result caching</li>
 <li>
 <a href="http://en.wikipedia.org/wiki/Thundering_herd_problem">Thundering herd</a> avoidance</li>
@@ -166,7 +166,7 @@ to communicate progress</li>
     <span class="n">step</span> <span class="o">=</span> <span class="mi">10</span>
 
     <span class="c"># If we can't connect to the backend, let's not just 500. k?</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="n">LotsOfDivisionTask</span><span class="p">()</span><span class="o">.</span><span class="n">delay_or_fail</span><span class="p">(</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">LotsOfDivisionTask</span><span class="o">.</span><span class="n">delay_or_fail</span><span class="p">(</span>
         <span class="n">numerators</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">step</span> <span class="o">*</span> <span class="n">iterations</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">step</span> <span class="o">*</span> <span class="mi">2</span><span class="p">),</span>
         <span class="n">denominators</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">step</span> <span class="o">*</span> <span class="n">iterations</span><span class="p">,</span> <span class="n">step</span><span class="p">),</span>
     <span class="p">)</span>
@@ -194,7 +194,7 @@ and keep the user up to date with what is happening.</p>
     <span class="n">iterations</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">'iterations'</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
     <span class="n">step</span> <span class="o">=</span> <span class="mi">10</span>
 
-    <span class="n">result</span> <span class="o">=</span> <span class="n">LotsOfDivisionTask</span><span class="p">()</span><span class="o">.</span><span class="n">delay_or_fail</span><span class="p">(</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">LotsOfDivisionTask</span><span class="o">.</span><span class="n">delay_or_fail</span><span class="p">(</span>
         <span class="n">numerators</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">step</span> <span class="o">*</span> <span class="n">iterations</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">step</span> <span class="o">*</span> <span class="mi">2</span><span class="p">),</span>
         <span class="n">denominators</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">step</span> <span class="o">*</span> <span class="n">iterations</span><span class="p">,</span> <span class="n">step</span><span class="p">),</span>
     <span class="p">)</span>
@@ -367,7 +367,7 @@ and it's not fun to handle that exception every single place
 you might use Celery.
 Jobtastic has your back.</p>
 
-<p>Included are <code>delay_or_run</code> and <code>delay_or_fail</code> methods
+<p>Included are <code>delay_or_eager</code> and <code>delay_or_fail</code> methods
 that handle a dead backend
 and do something a little more production-friendly.</p>
 
@@ -377,20 +377,22 @@ all of your arguments must be keyword arguments.</p>
 <p>Note: This is a limitation of the current <code>signficant_kwargs</code> implementation,
 and totally fixable if someone wants to submit a pull request.</p>
 
-<h3>delay_or_run</h3>
+<h3>delay_or_eager</h3>
 
-<p>If your broker is behaving,
+<p>If your broker is behaving itself,
 this guy acts just like <code>delay()</code>.
 In the case that your broker is down,
 though,
 it just goes ahead and runs the task in the current process
 and skips sending the task to a worker.
+You get back a nice shiny <code>EagerResult</code> object,
+which behaves just like the <code>AsyncResult</code> you were expecting.
 If you have a task that realistically only takes a few seconds to run,
-this might be better than giving an error message.</p>
+this might be better than giving yours users an error message.</p>
 
 <h3>delay_or_fail</h3>
 
-<p>Like <code>delay_or_run</code>,
+<p>Like <code>delay_or_eager</code>,
 this helps you handle a dead broker.
 Instead of running your task in the current process,
 this actually generates a task result representing the failure.
@@ -401,7 +403,7 @@ Maybe send them a fruit basket?</p>
 
 <p>For tasks that might take a while
 or consume a lot of RAM,
-you're probably better off using this than <code>delay_or_run</code>
+you're probably better off using this than <code>delay_or_eager</code>
 because you don't want to make a resource problem worse.</p>
 
 <h2>Client Side Handling</h2>

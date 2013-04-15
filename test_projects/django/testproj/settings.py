@@ -69,7 +69,6 @@ CELERY_RESULT_BACKEND = 'cache'
 from celery import VERSION
 if VERSION[0] < 3:
     # Use Django's syntax instead of Celery's, which would be:
-    # CELERY_CACHE_BACKEND = 'dummy://'
     CELERY_CACHE_BACKEND = 'locmem://'
 else:
     CELERY_CACHE_BACKEND = 'memory'

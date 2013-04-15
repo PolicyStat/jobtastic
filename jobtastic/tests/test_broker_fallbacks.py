@@ -42,6 +42,25 @@ class ParrotTask(JobtasticTask):
         return result
 
 
+error_if_calculate_result_patch = mock.patch.object(
+    ParrotTask,
+    'calculate_result',
+    autospec=True,
+    side_effect=AssertionError("Should have skipped calculate_result"),
+)
+basic_publish_connection_error_patch = mock.patch.object(
+    AmqpChannel,
+    'basic_publish',
+    autospec=True,
+    side_effect=StdConnectionError("Should be handled"),
+)
+basic_publish_channel_error_patch = mock.patch.object(
+    AmqpChannel,
+    'basic_publish',
+    autospec=True,
+    side_effect=StdChannelError("Should be handled"),
+)
+
 class BrokenBrokerTestCase(AppCase):
     def _set_broker_host(self, new_value):
         os.environ['CELERY_BROKER_URL'] = new_value
@@ -77,83 +96,51 @@ class BrokenBrokerTestCase(AppCase):
     def test_sanity(self):
         self.assertRaises(IOError, self.task.delay, result=1)
 
-    @mock.patch.object(
-        ParrotTask,
-        'calculate_result',
-        autospec=True,
-        side_effect=AssertionError("Should have skipped calculate_result"),
-    )
+    @error_if_calculate_result_patch
     def test_delay_or_fail_bad_connection(self, mock_calculate_result):
         # Loop through all of the possible connection errors and ensure they're
         # properly handled
-        with mock.patch.object(
-            AmqpChannel,
-            'basic_publish',
-            autospec=True,
-            side_effect=StdConnectionError("Should be handled"),
-        ) as mock_basic_publish:
+        with basic_publish_connection_error_patch as mock_basic_publish:
             async_task = self.task.delay_or_fail(result=1)
         self.assertEqual(async_task.status, states.FAILURE)
 
-    @mock.patch.object(
-        ParrotTask,
-        'calculate_result',
-        autospec=True,
-        side_effect=AssertionError("Should have skipped calculate_result"),
-    )
+    @error_if_calculate_result_patch
     def test_delay_or_fail_bad_channel(self, mock_calculate_result):
-        with mock.patch.object(
-            AmqpChannel,
-            'basic_publish',
-            autospec=True,
-            side_effect=StdChannelError("Should be handled"),
-        ) as mock_basic_publish:
+        with basic_publish_channel_error_patch as mock_basic_publish:
             async_task = self.task.delay_or_fail(result=1)
         self.assertEqual(async_task.status, states.FAILURE)
 
     def test_delay_or_run_bad_connection(self):
-        with mock.patch.object(
-            AmqpChannel,
-            'basic_publish',
-            autospec=True,
-            side_effect=StdConnectionError("Should be handled"),
-        ) as mock_basic_publish:
+        with basic_publish_connection_error_patch as mock_basic_publish:
             async_task, was_fallback = self.task.delay_or_run(result=27)
         self.assertTrue(was_fallback)
         self.assertEqual(async_task, 27)
 
     def test_delay_or_run_bad_channel(self):
-        with mock.patch.object(
-            AmqpChannel,
-            'basic_publish',
-            autospec=True,
-            side_effect=StdChannelError("Should be handled"),
-        ) as mock_basic_publish:
+        with basic_publish_channel_error_patch as mock_basic_publish:
             async_task, was_fallback = self.task.delay_or_run(result=27)
         self.assertTrue(was_fallback)
         self.assertEqual(async_task, 27)
 
     def test_delay_or_eager_bad_connection(self):
-        with mock.patch.object(
-            AmqpChannel,
-            'basic_publish',
-            autospec=True,
-            side_effect=StdConnectionError("Should be handled"),
-        ) as mock_basic_publish:
+        with basic_publish_connection_error_patch as mock_basic_publish:
             async_task = self.task.delay_or_eager(result=27)
         self.assertEqual(async_task.status, states.SUCCESS)
         self.assertEqual(async_task.result, 27)
 
     def test_delay_or_eager_bad_channel(self):
-        with mock.patch.object(
-            AmqpChannel,
-            'basic_publish',
-            autospec=True,
-            side_effect=StdChannelError("Should be handled"),
-        ) as mock_basic_publish:
+        with basic_publish_channel_error_patch as mock_basic_publish:
             async_task = self.task.delay_or_eager(result=27)
         self.assertEqual(async_task.status, states.SUCCESS)
         self.assertEqual(async_task.result, 27)
+
+
+calculate_result_returns_one_patch = mock.patch.object(
+    ParrotTask,
+    'calculate_result',
+    autospec=True,
+    return_value=1,
+)
 
 
 class WorkingBrokerTestCase(AppCase):
@@ -167,12 +154,7 @@ class WorkingBrokerTestCase(AppCase):
         self.assertEqual(async_task.status, states.SUCCESS)
         self.assertEqual(async_task.result, 1)
 
-    @mock.patch.object(
-        ParrotTask,
-        'calculate_result',
-        autospec=True,
-        return_value=1,
-    )
+    @calculate_result_returns_one_patch
     def test_delay_or_fail_runs(self, mock_calculate_result):
         with eager_tasks():
             async_task = self.task.delay_or_fail(result=1)
@@ -181,12 +163,7 @@ class WorkingBrokerTestCase(AppCase):
 
         self.assertEqual(mock_calculate_result.call_count, 1)
 
-    @mock.patch.object(
-        ParrotTask,
-        'calculate_result',
-        autospec=True,
-        return_value=1,
-    )
+    @calculate_result_returns_one_patch
     def test_delay_or_run_runs(self, mock_calculate_result):
         with eager_tasks():
             async_task, _ = self.task.delay_or_run(result=1)
@@ -195,12 +172,7 @@ class WorkingBrokerTestCase(AppCase):
 
         self.assertEqual(mock_calculate_result.call_count, 1)
 
-    @mock.patch.object(
-        ParrotTask,
-        'calculate_result',
-        autospec=True,
-        return_value=1,
-    )
+    @calculate_result_returns_one_patch
     def test_delay_or_eager_runs(self, mock_calculate_result):
         with eager_tasks():
             async_task = self.task.delay_or_eager(result=1)

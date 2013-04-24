@@ -326,13 +326,14 @@ class JobtasticTask(Task):
             "Updating progress: %s percent, %s remaining",
             progress_percent,
             time_remaining)
-        self.backend.store_result(
-            self.task_id,
-            result={
-                "progress_percent": progress_percent,
-                "time_remaining": time_remaining,
-            },
-            status=PROGRESS)
+        if self.request.id:
+            self.update_state(
+                meta={
+                    "progress_percent": progress_percent,
+                    "time_remaining": time_remaining,
+                },
+                state=PROGRESS,
+            )
 
     def run(self, *args, **kwargs):
         if get_task_logger:
@@ -351,15 +352,13 @@ class JobtasticTask(Task):
         self._last_update_count = 0
 
         # Report to the backend that work has been started.
-        self.task_id = kwargs.get('task_id', None)
-        if self.task_id is not None:
-            self.backend.store_result(
-                self.task_id,
-                result={
+        if self.request.id:
+            self.update_state(
+                meta={
                     "progress_percent": 0,
                     "time_remaining": -1,
                 },
-                status=PROGRESS,
+                state=PROGRESS,
             )
 
         memleak_threshold = int(getattr(self, 'memleak_threshold', -1))
@@ -379,9 +378,9 @@ class JobtasticTask(Task):
             cache_duration = self.cache_duration
         else:
             cache_duration = -1  # By default, don't cache
-        if cache_duration >= 0 and self.task_id is not None:
+        if cache_duration >= 0:
             # If we're configured to cache this result, do so.
-            cache.set(self.cache_key, self.task_id, cache_duration)
+            cache.set(self.cache_key, self.request.id, cache_duration)
 
         # Now that the task is finished, we can stop all of the thundering herd
         # avoidance
@@ -425,7 +424,7 @@ class JobtasticTask(Task):
         """
         if self.request.is_eager:
             # Store the result because celery wouldn't otherwise
-            self.backend.store_result(task_id, retval, status=states.SUCCESS)
+            self.update_state(task_id=task_id, state=states.SUCCESS, meta=retval)
 
     def _break_thundering_herd_cache(self):
         cache.delete('herd:%s' % self.cache_key)

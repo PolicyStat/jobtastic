@@ -1,6 +1,16 @@
 Changelog
 =========
 
+0.2.1
+-----
+
+* Progress tracking now works properly in Celery 3.X. Progress tracking
+  previously worked in 2.5, but because we relied on behavior that changed in
+  3.X to retrieve the task_id for recording the progress, it failed there.
+  We've not only fixed that problem (with a test), but also moved to using the
+  cleaner `self.update_state` call instead of a `self.backend.store_result`
+  call. Thanks to George Marshall for help on the fix.
+
 0.2.0
 -----
 

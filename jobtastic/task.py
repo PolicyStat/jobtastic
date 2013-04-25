@@ -16,18 +16,16 @@ from hashlib import md5
 
 import psutil
 
-from celery import states
 from celery.datastructures import ExceptionInfo
+from celery.states import PENDING, SUCCESS
 from celery.task import Task
-from celery.result import BaseAsyncResult
 from celery.utils import gen_unique_id
 
 get_task_logger = None
 try:
     from celery.utils.log import get_task_logger
 except ImportError:
-    # get_task_logger is new in Celery 3.X
-    pass
+    pass  # get_task_logger is new in Celery 3.X
 
 cache = None
 try:
@@ -86,7 +84,6 @@ def acquire_lock(lock_name):
         return
     yield
     cache.decr(lock_name)
-
 
 
 class JobtasticTask(Task):
@@ -190,16 +187,12 @@ class JobtasticTask(Task):
     @classmethod
     def _get_possible_broker_errors_tuple(self):
         if hasattr(self.app, 'connection'):
-            dummy_connection = self.app.connection()
+            dummy_conn = self.app.connection()
         else:
             # Celery 2.5 uses `broker_connection` instead
-            dummy_connection = self.app.broker_connection()
+            dummy_conn = self.app.broker_connection()
 
-        possible_errors = []
-        possible_errors.extend(dummy_connection.connection_errors)
-        possible_errors.extend(dummy_connection.channel_errors)
-
-        return tuple(possible_errors)
+        return dummy_conn.connection_errors + dummy_conn.channel_errors
 
     @classmethod
     def simulate_async_error(self, exception):
@@ -261,7 +254,7 @@ class JobtasticTask(Task):
                 **options
             )
             logging.info('Current status: %s', task_meta.status)
-            if task_meta.status in [PROGRESS, states.PENDING]:
+            if task_meta.status in (PROGRESS, PENDING):
                 cache.set(
                     'herd:%s' % cache_key,
                     task_meta.task_id,
@@ -305,7 +298,11 @@ class JobtasticTask(Task):
         return completion_display, time_remaining
 
     def update_progress(
-        self, completed_count, total_count, update_frequency=1):
+        self,
+        completed_count,
+        total_count,
+        update_frequency=1,
+    ):
         """
         Update the task backend with both an estimated percentage complete and
         number of seconds remaining until completion.
@@ -326,13 +323,11 @@ class JobtasticTask(Task):
             "Updating progress: %s percent, %s remaining",
             progress_percent,
             time_remaining)
-        self.backend.store_result(
-            self.task_id,
-            result={
+        if self.request.id:
+            self.update_state(None, PROGRESS, {
                 "progress_percent": progress_percent,
                 "time_remaining": time_remaining,
-            },
-            status=PROGRESS)
+            })
 
     def run(self, *args, **kwargs):
         if get_task_logger:
@@ -351,16 +346,11 @@ class JobtasticTask(Task):
         self._last_update_count = 0
 
         # Report to the backend that work has been started.
-        self.task_id = kwargs.get('task_id', None)
-        if self.task_id is not None:
-            self.backend.store_result(
-                self.task_id,
-                result={
-                    "progress_percent": 0,
-                    "time_remaining": -1,
-                },
-                status=PROGRESS,
-            )
+        if self.request.id:
+            self.update_state(None, PROGRESS, {
+                "progress_percent": 0,
+                "time_remaining": -1,
+            })
 
         memleak_threshold = int(getattr(self, 'memleak_threshold', -1))
         if memleak_threshold >= 0:
@@ -379,9 +369,9 @@ class JobtasticTask(Task):
             cache_duration = self.cache_duration
         else:
             cache_duration = -1  # By default, don't cache
-        if cache_duration >= 0 and self.task_id is not None:
+        if cache_duration >= 0:
             # If we're configured to cache this result, do so.
-            cache.set(self.cache_key, self.task_id, cache_duration)
+            cache.set(self.cache_key, self.request.id, cache_duration)
 
         # Now that the task is finished, we can stop all of the thundering herd
         # avoidance
@@ -409,10 +399,10 @@ class JobtasticTask(Task):
         Ensure that this subclass has defined all of the required class
         variables.
         """
-        required_members = [
+        required_members = (
             'significant_kwargs',
             'herd_avoidance_timeout',
-        ]
+        )
         for required_member in required_members:
             if not hasattr(self, required_member):
                 raise Exception(
@@ -425,7 +415,7 @@ class JobtasticTask(Task):
         """
         if self.request.is_eager:
             # Store the result because celery wouldn't otherwise
-            self.backend.store_result(task_id, retval, status=states.SUCCESS)
+            self.update_state(task_id, SUCCESS, retval)
 
     def _break_thundering_herd_cache(self):
         cache.delete('herd:%s' % self.cache_key)

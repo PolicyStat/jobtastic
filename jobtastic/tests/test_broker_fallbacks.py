@@ -1,8 +1,6 @@
-import inspect
 import os
 
 import mock
-from unittest2 import TestCase
 
 
 from celery import states
@@ -11,14 +9,12 @@ from celery.tests.utils import AppCase, eager_tasks
 USING_CELERY_2_X = False
 try:
     from kombu.transport.pyamqp import (
-        Transport as AmqpTransport,
         Channel as AmqpChannel,
     )
     from kombu.exceptions import StdChannelError, StdConnectionError
 except ImportError:
     USING_CELERY_2_X = True
     from kombu.transport.amqplib import (
-        Transport as AmqpTransport,
         Channel as AmqpChannel,
     )
     from kombu.exceptions import StdChannelError
@@ -61,6 +57,7 @@ basic_publish_channel_error_patch = mock.patch.object(
     side_effect=StdChannelError("Should be handled"),
 )
 
+
 class BrokenBrokerTestCase(AppCase):
     def _set_broker_host(self, new_value):
         os.environ['CELERY_BROKER_URL'] = new_value
@@ -100,36 +97,36 @@ class BrokenBrokerTestCase(AppCase):
     def test_delay_or_fail_bad_connection(self, mock_calculate_result):
         # Loop through all of the possible connection errors and ensure they're
         # properly handled
-        with basic_publish_connection_error_patch as mock_basic_publish:
+        with basic_publish_connection_error_patch:
             async_task = self.task.delay_or_fail(result=1)
         self.assertEqual(async_task.status, states.FAILURE)
 
     @error_if_calculate_result_patch
     def test_delay_or_fail_bad_channel(self, mock_calculate_result):
-        with basic_publish_channel_error_patch as mock_basic_publish:
+        with basic_publish_channel_error_patch:
             async_task = self.task.delay_or_fail(result=1)
         self.assertEqual(async_task.status, states.FAILURE)
 
     def test_delay_or_run_bad_connection(self):
-        with basic_publish_connection_error_patch as mock_basic_publish:
+        with basic_publish_connection_error_patch:
             async_task, was_fallback = self.task.delay_or_run(result=27)
         self.assertTrue(was_fallback)
         self.assertEqual(async_task, 27)
 
     def test_delay_or_run_bad_channel(self):
-        with basic_publish_channel_error_patch as mock_basic_publish:
+        with basic_publish_channel_error_patch:
             async_task, was_fallback = self.task.delay_or_run(result=27)
         self.assertTrue(was_fallback)
         self.assertEqual(async_task, 27)
 
     def test_delay_or_eager_bad_connection(self):
-        with basic_publish_connection_error_patch as mock_basic_publish:
+        with basic_publish_connection_error_patch:
             async_task = self.task.delay_or_eager(result=27)
         self.assertEqual(async_task.status, states.SUCCESS)
         self.assertEqual(async_task.result, 27)
 
     def test_delay_or_eager_bad_channel(self):
-        with basic_publish_channel_error_patch as mock_basic_publish:
+        with basic_publish_channel_error_patch:
             async_task = self.task.delay_or_eager(result=27)
         self.assertEqual(async_task.status, states.SUCCESS)
         self.assertEqual(async_task.result, 27)

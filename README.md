@@ -79,7 +79,11 @@ class LotsOfDivisionTask(JobtasticTask):
 			numerator, denominator = divisors
 			results.append(numerator / denominator)
 			# Let's let everyone know how we're doing
-			self.update_progress(count, divisions_to_do, update_frequency=10)
+			self.update_progress(
+                count,
+                divisions_to_do,
+                update_frequency=update_frequency,
+            )
 			# Let's pretend that we're using the computers that landed us on the moon
 			sleep(0.1)
 

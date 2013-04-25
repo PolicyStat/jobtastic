@@ -16,18 +16,16 @@ from hashlib import md5
 
 import psutil
 
-from celery import states
 from celery.datastructures import ExceptionInfo
+from celery.states import PENDING, SUCCESS
 from celery.task import Task
-from celery.result import BaseAsyncResult
 from celery.utils import gen_unique_id
 
 get_task_logger = None
 try:
     from celery.utils.log import get_task_logger
 except ImportError:
-    # get_task_logger is new in Celery 3.X
-    pass
+    pass  # get_task_logger is new in Celery 3.X
 
 cache = None
 try:
@@ -86,7 +84,6 @@ def acquire_lock(lock_name):
         return
     yield
     cache.decr(lock_name)
-
 
 
 class JobtasticTask(Task):
@@ -190,16 +187,12 @@ class JobtasticTask(Task):
     @classmethod
     def _get_possible_broker_errors_tuple(self):
         if hasattr(self.app, 'connection'):
-            dummy_connection = self.app.connection()
+            dummy_conn = self.app.connection()
         else:
             # Celery 2.5 uses `broker_connection` instead
-            dummy_connection = self.app.broker_connection()
+            dummy_conn = self.app.broker_connection()
 
-        possible_errors = []
-        possible_errors.extend(dummy_connection.connection_errors)
-        possible_errors.extend(dummy_connection.channel_errors)
-
-        return tuple(possible_errors)
+        return dummy_conn.connection_errors + dummy_conn.channel_errors
 
     @classmethod
     def simulate_async_error(self, exception):
@@ -261,7 +254,7 @@ class JobtasticTask(Task):
                 **options
             )
             logging.info('Current status: %s', task_meta.status)
-            if task_meta.status in [PROGRESS, states.PENDING]:
+            if task_meta.status in (PROGRESS, PENDING):
                 cache.set(
                     'herd:%s' % cache_key,
                     task_meta.task_id,
@@ -402,10 +395,10 @@ class JobtasticTask(Task):
         Ensure that this subclass has defined all of the required class
         variables.
         """
-        required_members = [
+        required_members = (
             'significant_kwargs',
             'herd_avoidance_timeout',
-        ]
+        )
         for required_member in required_members:
             if not hasattr(self, required_member):
                 raise Exception(
@@ -418,7 +411,7 @@ class JobtasticTask(Task):
         """
         if self.request.is_eager:
             # Store the result because celery wouldn't otherwise
-            self.update_state(task_id, states.SUCCESS, retval)
+            self.update_state(task_id, SUCCESS, retval)
 
     def _break_thundering_herd_cache(self):
         cache.delete('herd:%s' % self.cache_key)

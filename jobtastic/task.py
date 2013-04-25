@@ -298,7 +298,11 @@ class JobtasticTask(Task):
         return completion_display, time_remaining
 
     def update_progress(
-        self, completed_count, total_count, update_frequency=1):
+        self,
+        completed_count,
+        total_count,
+        update_frequency=1,
+    ):
         """
         Update the task backend with both an estimated percentage complete and
         number of seconds remaining until completion.

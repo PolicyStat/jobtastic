@@ -327,13 +327,10 @@ class JobtasticTask(Task):
             progress_percent,
             time_remaining)
         if self.request.id:
-            self.update_state(
-                meta={
-                    "progress_percent": progress_percent,
-                    "time_remaining": time_remaining,
-                },
-                state=PROGRESS,
-            )
+            self.update_state(None, PROGRESS, {
+                "progress_percent": progress_percent,
+                "time_remaining": time_remaining,
+            })
 
     def run(self, *args, **kwargs):
         if get_task_logger:
@@ -353,13 +350,10 @@ class JobtasticTask(Task):
 
         # Report to the backend that work has been started.
         if self.request.id:
-            self.update_state(
-                meta={
-                    "progress_percent": 0,
-                    "time_remaining": -1,
-                },
-                state=PROGRESS,
-            )
+            self.update_state(None, PROGRESS, {
+                "progress_percent": 0,
+                "time_remaining": -1,
+            })
 
         memleak_threshold = int(getattr(self, 'memleak_threshold', -1))
         if memleak_threshold >= 0:
@@ -424,7 +418,7 @@ class JobtasticTask(Task):
         """
         if self.request.is_eager:
             # Store the result because celery wouldn't otherwise
-            self.update_state(task_id=task_id, state=states.SUCCESS, meta=retval)
+            self.update_state(task_id, states.SUCCESS, retval)
 
     def _break_thundering_herd_cache(self):
         cache.delete('herd:%s' % self.cache_key)

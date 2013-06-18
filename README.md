@@ -59,7 +59,7 @@ class LotsOfDivisionTask(JobtasticTask):
 	# These are the Task kwargs that matter for caching purposes
 	significant_kwargs = [
 		('numerators', str),
-		('denominator', str),
+		('denominators', str),
 	]
 	# How long should we give a task before assuming it has failed?
 	herd_avoidance_timeout = 60  # Shouldn't take more than 60 seconds
@@ -184,7 +184,7 @@ so Jobtastic can do smart things.
 ``` python
 significant_kwargs = [
 	('numerators', str),
-	('denominator', str),
+	('denominators', str),
 ]
 ```
 

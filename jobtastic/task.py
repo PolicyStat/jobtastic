@@ -324,6 +324,7 @@ class JobtasticTask(Task):
             progress_percent,
             time_remaining)
         if self.request.id:
+            self._last_update_count = completed_count
             self.update_state(None, PROGRESS, {
                 "progress_percent": progress_percent,
                 "time_remaining": time_remaining,

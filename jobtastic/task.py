@@ -319,7 +319,7 @@ class JobtasticTask(Task):
         # Store progress for display
         progress_percent, time_remaining = self.calc_progress(
             completed_count, total_count)
-        self.logger.info(
+        self.logger.debug(
             "Updating progress: %s percent, %s remaining",
             progress_percent,
             time_remaining)

@@ -45,6 +45,12 @@ the[Semantic Versioning](http://semver.org/) standard.
 
 eg. `$ git tag v0.1.1 && git push --tags`
 
+## Post the Changelog to the Github releases page
+
+Browse to the [releases page](https://github.com/PolicyStat/jobtastic/releases)
+and edit our newly-tagged release with a title
+and the relevant Changelog sections.
+
 ## Consider announcing things
 
 If the new version adds something sufficiently cool,

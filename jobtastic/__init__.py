@@ -1,6 +1,6 @@
 """Make your user-facing Celery jobs totally awesomer"""
 
-VERSION = (0, 2, 1, '')
+VERSION = (0, 2, 2, '')
 __version__ = '.'.join(map(str, VERSION[0:3])) + ''.join(VERSION[3:])
 __author__ = 'Wes Winham'
 __contact__ = 'winhamwr@gmail.com'

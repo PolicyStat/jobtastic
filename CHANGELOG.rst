@@ -1,6 +1,19 @@
 Changelog
 =========
 
+0.2.2
+-----
+
+* The `update_frequency` argument to `update_progress()` wasn't properly
+  delaying updates to the back end after the first increment. This resulted
+  in many more progress updates to your backend, which means you should
+  see performance gains with this release if you took advantage of that option.
+  Thanks to Ilya Baryshev for the fix.
+* Logging calls related to `update_progress()` are now at the `DEBUG` level
+  instead of `LOG`. Hopefully your logs are much more readable, as a result.
+  Thanks to Kyle Gibson for convincing me that things used for debugging
+  should probably be at the debug level.
+
 0.2.1
 -----
 

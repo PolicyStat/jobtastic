@@ -159,7 +159,7 @@ def lets_divide():
 		denominators=range(1, step * iterations, step),
 	)
 
-	return render_template('my_app/lets_divide.html', task_id=request.task_id)
+	return render_template('my_app/lets_divide.html', task_id=result.task_id)
 ```
 
 ### Required Member Variables

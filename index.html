@@ -39,7 +39,7 @@
         <ul></ul>
       </nav>
       <section>
-        <h1>jobtastic- Celery tasks plus more awesome</h1>
+        <h1>jobtastic — Celery tasks plus more awesome</h1>
 
 <p><a href="https://travis-ci.org/PolicyStat/jobtastic"><img src="https://travis-ci.org/PolicyStat/jobtastic.png?branch=master" alt="Build Status"></a></p>
 
@@ -68,6 +68,8 @@ for easy client-side progress display</li>
 <li>Memory leak detection in a task run</li>
 </ul><p>Make your Celery jobs more awesome with Jobtastic.</p>
 
+
+<br/><br/>
 <h2>Why Jobtastic?</h2>
 
 <p>If you have user-facing tasks for which a user must wait,
@@ -81,6 +83,8 @@ It's great for:</p>
 <li>Any long-running, user-facing job</li>
 </ul><p>You could write all of the stuff yourself, but why?</p>
 
+
+<br/><br/>
 <h2>Installation</h2>
 
 <ol>
@@ -89,7 +93,10 @@ It's great for:</p>
 
 <p>$ pip install jobtastic</p>
 </li>
-</ol><h2>Creating Your First Task</h2>
+</ol>
+
+<br/><br/>
+<h2>Creating Your First Task</h2>
 
 <p>Let's take a look at an example task using Jobtastic:</p>
 
@@ -223,7 +230,7 @@ so Jobtastic can do smart things.</p>
 
 <div class="highlight"><pre><span class="n">significant_kwargs</span> <span class="o">=</span> <span class="p">[</span>
     <span class="p">(</span><span class="s">'numerators'</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
-    <span class="p">(</span><span class="s">'denominator'</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+    <span class="p">(</span><span class="s">'denominators'</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
 <span class="p">]</span>
 </pre></div>
 
@@ -352,6 +359,11 @@ we're only actually updating the progress every 10 division operations:</p>
     <span class="bp">self</span><span class="o">.</span><span class="n">update_progress</span><span class="p">(</span><span class="n">count</span><span class="p">,</span> <span class="n">divisions_to_do</span><span class="p">,</span> <span class="n">update_frequency</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
 </pre></div>
 
+<h4>update_progress (another approach)</h4>
+<p>For those who uses <a href="http://redis.io/" target="new">RedisDB</a> there is simpler approach with the <a
+href="https://github.com/abbasovalex/JobtasticMixins" target="new">JobtasticMixins</a> package.</p>
+
+<br/><br/>
 <h2>Using your JobtasticTask</h2>
 
 <p>Sometimes,
@@ -405,6 +417,73 @@ Maybe send them a fruit basket?</p>
 or consume a lot of RAM,
 you're probably better off using this than <code>delay_or_eager</code>
 because you don't want to make a resource problem worse.</p>
+
+<br/>
+<br/>
+
+<h2>Using with JobtasticMixins</h2>
+<p>
+<a href="https://github.com/abbasovalex/JobtasticMixins">JobtasticMixins</a>
+package was created for more fun. Currently it can be used users who uses
+RedisDB, but in the future it may be expanded for RabbitMQ and MongoDB.
+For more details <a
+href="https://github.com/abbasovalex/JobtasticMixins">see official page</a>
+
+</p>
+
+
+<h3>Example with AVGTimeRedis class</h3>
+<p>The class that helps automate calculate an avarage time for different kind
+tasks and saves result into Redis DB</p>
+
+
+<p>Let's take a look at the example task using with JobtasticMixins and AVGTimeRedis class:</p>
+
+<div class="highlight"><pre><span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
+<span class="kn">from</span> <span class="nn">jobtastic</span> <span class="kn">import</span> <span class="n">JobtasticTask</span>
+<span class="kn">from</span> <span class="nn">jobtasticmixins</span> <span class="kn">import</span> <span class="n">AVGTimeRedis</span>
+
+
+<span class="k">class</span> <span class="nc">LotsOfDivisionTask</span><span class="p">(</span><span class="n">AVGTimeRedis</span>, <span class="n">JobtasticTask</span><span class="p">):</span>
+    <span class="sd">"""</span>
+<span class="sd">    Division is hard. Make Celery do it a bunch.</span>
+<span class="sd">    """</span>
+    <span class="n">significant_kwargs</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s">'numerators'</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+        <span class="p">(</span><span class="s">'denominators'</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+    <span class="p">]</span>
+    <span class="n">herd_avoidance_timeout</span> <span class="o">=</span> <span class="mi">60</span>
+    <span class="n">cache_duration</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="c"># optional variable was added. by default is 30 seconds</span>   
+    <span class="n">default_avg_time</span> <span class="o">=</span> <span class="mi">90</span>
+
+    <span class="k">def</span> <span class="nf">calculate_result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">numerators</span><span class="p">,</span> <span class="n">denominators</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">count</span><span class="p">,</span> <span class="n">divisors</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">numerators</span><span class="p">,</span> <span class="n">denominators</span><span class="p">)):</span>
+            <span class="n">numerator</span><span class="p">,</span> <span class="n">denominator</span> <span class="o">=</span> <span class="n">divisors</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">numerator</span> <span class="o">/</span> <span class="n">denominator</span><span class="p">)</span>
+            <span class="c"># it will be auto calculated</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_progress</span><span class="p">(</span><span class="p">)</span>
+            <span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+
+        <span class="c"># set finish=True for avoid trouble</span>
+        <span class="bp">self</span><span class="o">.</span><span
+        class="n">update_progress</span><span class="p">(</span>finish<span class="o">=</span><span class="mi">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">results</span>
+</pre></div>
+
+Under the hood:
+<p>
+1. AVGTimeRedis gets settings.BROKER_URL and connects to Redis
+<br/>
+2. It counts the tasks and the workers and uses to calculating
+<br/>
+More details you can see into <a
+href="https://github.com/abbasovalex/JobtasticMixins/blob/master/jobtasticmixins/mixins.py">source</a>
+</p>
+
+<br/>
+<br/>
 
 <h2>Client Side Handling</h2>
 
@@ -473,6 +552,9 @@ as it could be caused by any number of application errors.
 In general, you probably want to try again if this happens,
 but if it persists, you'll want to give your user feedback.</p>
 
+<br/>
+<br/>
+
 <h2>Running The Test Suite</h2>
 
 <p>You can run Jobtastic's test suite yourself via:</p>
@@ -491,9 +573,12 @@ across all of our supported python/Django/Celery versions via Tox:</p>
 <pre><code>$ tox
 </code></pre>
 
+<br/>
+
 <h2>Is it Awesome?</h2>
 
 <p>Yes. Increasingly so.</p>
+
 
 <h2>Project Status</h2>
 

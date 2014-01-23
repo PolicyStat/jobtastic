@@ -3,7 +3,16 @@ import mock
 
 from celery.result import BaseAsyncResult
 from celery.states import SUCCESS
-from celery.tests.utils import AppCase, eager_tasks
+try:
+    from celery.tests.utils import AppCase
+except ImportError:
+    # AppCase was moved in Celery 3.1
+    from celery.tests.case import AppCase
+try:
+    from celery.tests.utils import eager_tasks
+except ImportError:
+    # eager_tasks was removed in celery 3.1
+    from jobtastic.tests.utils import eager_tasks
 
 from jobtastic import JobtasticTask
 from jobtastic.states import PROGRESS

@@ -4,7 +4,16 @@ import mock
 
 
 from celery import states
-from celery.tests.utils import AppCase, eager_tasks
+try:
+    from celery.tests.utils import AppCase
+except ImportError:
+    # AppCase was moved in Celery 3.1
+    from celery.tests.case import AppCase
+try:
+    from celery.tests.utils import eager_tasks
+except ImportError:
+    # eager_tasks was removed in celery 3.1
+    from jobtastic.tests.utils import eager_tasks
 
 USING_CELERY_2_X = False
 try:

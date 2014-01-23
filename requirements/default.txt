@@ -1,2 +1,2 @@
-celery>=2.5
+celery>=2.5,<3.1
 psutil

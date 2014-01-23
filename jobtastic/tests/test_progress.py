@@ -8,11 +8,8 @@ try:
 except ImportError:
     # AppCase was moved in Celery 3.1
     from celery.tests.case import AppCase
-try:
-    from celery.tests.utils import eager_tasks
-except ImportError:
-    # eager_tasks was removed in celery 3.1
-    from jobtastic.tests.utils import eager_tasks
+# eager_tasks was removed in celery 3.1
+from jobtastic.tests.utils import eager_tasks
 
 from jobtastic import JobtasticTask
 from jobtastic.states import PROGRESS
@@ -52,7 +49,7 @@ class ProgressTestCase(AppCase):
 
     def test_sanity(self):
         # The task actually runs
-        with eager_tasks():
+        with eager_tasks(self.app):
             async_task = self.task.delay(count_to=2)
         self.assertEqual(async_task.status, SUCCESS)
         self.assertEqual(async_task.result, 2)
@@ -60,7 +57,7 @@ class ProgressTestCase(AppCase):
     def test_starts_with_progress_state(self):
         # The state has already been set to PROGRESS before `calculate_result`
         # starts
-        with eager_tasks():
+        with eager_tasks(self.app):
             with mock.patch.object(
                 self.task,
                 'calculate_result',

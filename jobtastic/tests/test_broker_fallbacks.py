@@ -9,11 +9,8 @@ try:
 except ImportError:
     # AppCase was moved in Celery 3.1
     from celery.tests.case import AppCase
-try:
-    from celery.tests.utils import eager_tasks
-except ImportError:
-    # eager_tasks was removed in celery 3.1
-    from jobtastic.tests.utils import eager_tasks
+# eager_tasks was removed in celery 3.1
+from jobtastic.tests.utils import eager_tasks
 
 USING_CELERY_2_X = False
 try:
@@ -155,14 +152,14 @@ class WorkingBrokerTestCase(AppCase):
 
     def test_sanity(self):
         # The task actually runs
-        with eager_tasks():
+        with eager_tasks(self.app):
             async_task = self.task.delay(result=1)
         self.assertEqual(async_task.status, states.SUCCESS)
         self.assertEqual(async_task.result, 1)
 
     @calculate_result_returns_one_patch
     def test_delay_or_fail_runs(self, mock_calculate_result):
-        with eager_tasks():
+        with eager_tasks(self.app):
             async_task = self.task.delay_or_fail(result=1)
         self.assertEqual(async_task.status, states.SUCCESS)
         self.assertEqual(async_task.result, 1)
@@ -171,7 +168,7 @@ class WorkingBrokerTestCase(AppCase):
 
     @calculate_result_returns_one_patch
     def test_delay_or_run_runs(self, mock_calculate_result):
-        with eager_tasks():
+        with eager_tasks(self.app):
             async_task, _ = self.task.delay_or_run(result=1)
         self.assertEqual(async_task.status, states.SUCCESS)
         self.assertEqual(async_task.result, 1)
@@ -180,7 +177,7 @@ class WorkingBrokerTestCase(AppCase):
 
     @calculate_result_returns_one_patch
     def test_delay_or_eager_runs(self, mock_calculate_result):
-        with eager_tasks():
+        with eager_tasks(self.app):
             async_task = self.task.delay_or_eager(result=1)
         self.assertEqual(async_task.status, states.SUCCESS)
         self.assertEqual(async_task.result, 1)

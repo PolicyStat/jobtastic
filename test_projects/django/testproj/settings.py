@@ -66,14 +66,20 @@ BROKER_CONNECTION_MAX_RETRIES = 1
 # To prevent that, just disable it
 BROKER_POOL_LIMIT = 0
 CELERY_RESULT_BACKEND = 'cache'
+CELERY_SEND_TASK_ERROR_EMAILS = False
 from celery import VERSION
 if VERSION[0] < 3:
     # Use Django's syntax instead of Celery's, which would be:
     CELERY_CACHE_BACKEND = 'locmem://'
-else:
+    import djcelery
+    djcelery.setup_loader()
+elif VERSION[0] == 3 and VERSION[1] == 0:
     CELERY_CACHE_BACKEND = 'memory'
-
-CELERY_SEND_TASK_ERROR_EMAILS = False
-
-import djcelery
-djcelery.setup_loader()
+    import djcelery
+    djcelery.setup_loader()
+else:
+    from celery import Celery
+    CELERY_RESULT_BACKEND = 'cache+memory://'
+    celery_app = Celery('testproj')
+    celery_app.config_from_object('django.conf:settings')
+    celery_app.autodiscover_tasks(lambda: INSTALLED_APPS)

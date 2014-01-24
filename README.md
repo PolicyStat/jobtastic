@@ -420,8 +420,10 @@ class LotsOfDivisionTask(AVGTimeRedis, JobtasticTask):
 ```
 
 Under the hood:
+
 1. AVGTimeRedis gets settings.BROKER_URL and connects to Redis 
 2. It counts the tasks and the workers and uses to calculating 
+
 More details you can see into [source](https://github.com/abbasovalex/JobtasticMixins/blob/master/jobtasticmixins/mixins.py)
 
 

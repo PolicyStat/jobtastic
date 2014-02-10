@@ -39,7 +39,8 @@
         <ul></ul>
       </nav>
       <section>
-        <h1>jobtastic- Celery tasks plus more awesome</h1>
+        <h1>
+<a name="jobtastic--celery-tasks-plus-more-awesome" class="anchor" href="#jobtastic--celery-tasks-plus-more-awesome"><span class="octicon octicon-link"></span></a>jobtastic- Celery tasks plus more awesome</h1>
 
 <p><a href="https://travis-ci.org/PolicyStat/jobtastic"><img src="https://travis-ci.org/PolicyStat/jobtastic.png?branch=master" alt="Build Status"></a></p>
 
@@ -68,7 +69,8 @@ for easy client-side progress display</li>
 <li>Memory leak detection in a task run</li>
 </ul><p>Make your Celery jobs more awesome with Jobtastic.</p>
 
-<h2>Why Jobtastic?</h2>
+<h2>
+<a name="why-jobtastic" class="anchor" href="#why-jobtastic"><span class="octicon octicon-link"></span></a>Why Jobtastic?</h2>
 
 <p>If you have user-facing tasks for which a user must wait,
 you should try Jobtastic.
@@ -81,7 +83,8 @@ It's great for:</p>
 <li>Any long-running, user-facing job</li>
 </ul><p>You could write all of the stuff yourself, but why?</p>
 
-<h2>Installation</h2>
+<h2>
+<a name="installation" class="anchor" href="#installation"><span class="octicon octicon-link"></span></a>Installation</h2>
 
 <ol>
 <li>
@@ -89,11 +92,12 @@ It's great for:</p>
 
 <p>$ pip install jobtastic</p>
 </li>
-</ol><h2>Creating Your First Task</h2>
+</ol><h2>
+<a name="creating-your-first-task" class="anchor" href="#creating-your-first-task"><span class="octicon octicon-link"></span></a>Creating Your First Task</h2>
 
 <p>Let's take a look at an example task using Jobtastic:</p>
 
-<div class="highlight"><pre><span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
+<div class="highlight highlight-python"><pre><span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
 
 <span class="kn">from</span> <span class="nn">jobtastic</span> <span class="kn">import</span> <span class="n">JobtasticTask</span>
 
@@ -124,7 +128,11 @@ It's great for:</p>
             <span class="n">numerator</span><span class="p">,</span> <span class="n">denominator</span> <span class="o">=</span> <span class="n">divisors</span>
             <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">numerator</span> <span class="o">/</span> <span class="n">denominator</span><span class="p">)</span>
             <span class="c"># Let's let everyone know how we're doing</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">update_progress</span><span class="p">(</span><span class="n">count</span><span class="p">,</span> <span class="n">divisions_to_do</span><span class="p">,</span> <span class="n">update_frequency</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">update_progress</span><span class="p">(</span>
+                <span class="n">count</span><span class="p">,</span>
+                <span class="n">divisions_to_do</span><span class="p">,</span>
+                <span class="n">update_frequency</span><span class="o">=</span><span class="n">update_frequency</span><span class="p">,</span>
+            <span class="p">)</span>
             <span class="c"># Let's pretend that we're using the computers that landed us on the moon</span>
             <span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
 
@@ -154,7 +162,7 @@ we've done all of these things.</p>
 to communicate progress</li>
 </ol><p>Now, to use this task in your Django view, you'll do something like:</p>
 
-<div class="highlight"><pre><span class="kn">from</span> <span class="nn">django.shortcuts</span> <span class="kn">import</span> <span class="n">render_to_response</span>
+<div class="highlight highlight-python"><pre><span class="kn">from</span> <span class="nn">django.shortcuts</span> <span class="kn">import</span> <span class="n">render_to_response</span>
 
 <span class="kn">from</span> <span class="nn">my_app.tasks</span> <span class="kn">import</span> <span class="n">LotsOfDivisionTask</span>
 
@@ -183,7 +191,7 @@ and keep the user up to date with what is happening.</p>
 
 <p>For <a href="http://flask.pocoo.org/">Flask</a>, you might do something like:</p>
 
-<div class="highlight"><pre><span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">render_template</span>
+<div class="highlight highlight-python"><pre><span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">render_template</span>
 
 <span class="kn">from</span> <span class="nn">my_app.tasks</span> <span class="kn">import</span> <span class="n">LotsOfDivisionTask</span>
 
@@ -199,10 +207,11 @@ and keep the user up to date with what is happening.</p>
         <span class="n">denominators</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">step</span> <span class="o">*</span> <span class="n">iterations</span><span class="p">,</span> <span class="n">step</span><span class="p">),</span>
     <span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s">'my_app/lets_divide.html'</span><span class="p">,</span> <span class="n">task_id</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">task_id</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">render_template</span><span class="p">(</span><span class="s">'my_app/lets_divide.html'</span><span class="p">,</span> <span class="n">task_id</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">task_id</span><span class="p">)</span>
 </pre></div>
 
-<h3>Required Member Variables</h3>
+<h3>
+<a name="required-member-variables" class="anchor" href="#required-member-variables"><span class="octicon octicon-link"></span></a>Required Member Variables</h3>
 
 <p>"But wait, Wes. What the heck do those member variables actually do?" You ask.</p>
 
@@ -210,7 +219,8 @@ and keep the user up to date with what is happening.</p>
 
 <p>And B, why don't I tell you!?</p>
 
-<h4>significant_kwargs</h4>
+<h4>
+<a name="significant_kwargs" class="anchor" href="#significant_kwargs"><span class="octicon octicon-link"></span></a>significant_kwargs</h4>
 
 <p>This is key to your caching magic.
 It's a list of 2-tuples containing the name of a kwarg
@@ -221,9 +231,9 @@ In our division example,
 any task with the same numerators and denominators can be considered identical,
 so Jobtastic can do smart things.</p>
 
-<div class="highlight"><pre><span class="n">significant_kwargs</span> <span class="o">=</span> <span class="p">[</span>
+<div class="highlight highlight-python"><pre><span class="n">significant_kwargs</span> <span class="o">=</span> <span class="p">[</span>
     <span class="p">(</span><span class="s">'numerators'</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
-    <span class="p">(</span><span class="s">'denominator'</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
+    <span class="p">(</span><span class="s">'denominators'</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
 <span class="p">]</span>
 </pre></div>
 
@@ -231,14 +241,15 @@ so Jobtastic can do smart things.</p>
 and only the numerators mattered for division results,
 we could do something like:</p>
 
-<div class="highlight"><pre><span class="n">significant_kwargs</span> <span class="o">=</span> <span class="p">[</span>
+<div class="highlight highlight-python"><pre><span class="n">significant_kwargs</span> <span class="o">=</span> <span class="p">[</span>
     <span class="p">(</span><span class="s">'numerators'</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span>
 <span class="p">]</span>
 </pre></div>
 
 <p>Now tasks called with an identical list of numerators will share a result.</p>
 
-<h4>herd_avoidance_timeout</h4>
+<h4>
+<a name="herd_avoidance_timeout" class="anchor" href="#herd_avoidance_timeout"><span class="octicon octicon-link"></span></a>herd_avoidance_timeout</h4>
 
 <p>This is the max number of seconds for which Jobtastic will wait
 for identical task results to be determined.
@@ -251,13 +262,15 @@ it's assumed that something bad happened to the other task run
 (a worker failed)
 and we'll start calculating from the start.</p>
 
-<h3>Optional Member Variables</h3>
+<h3>
+<a name="optional-member-variables" class="anchor" href="#optional-member-variables"><span class="octicon octicon-link"></span></a>Optional Member Variables</h3>
 
 <p>These let you tweak the default behavior.
 Most often, you'll just be setting the <code>cache_duration</code>
 to enable result caching.</p>
 
-<h4>cache_duration</h4>
+<h4>
+<a name="cache_duration" class="anchor" href="#cache_duration"><span class="octicon octicon-link"></span></a>cache_duration</h4>
 
 <p>If you want your results cached,
 set this to a non-negative number of seconds.
@@ -268,7 +281,8 @@ meaning don't do any caching.
 Remember,
 <code>JobtasticTask</code> uses your <code>signficant_kwargs</code> to determine what is identical.</p>
 
-<h4>cache_prefix</h4>
+<h4>
+<a name="cache_prefix" class="anchor" href="#cache_prefix"><span class="octicon octicon-link"></span></a>cache_prefix</h4>
 
 <p>This is an optional string used to represent tasks
 that should share cache results and thundering herd avoidance.
@@ -279,7 +293,8 @@ or you have some very-odd cache key conflict,
 then you can change this yourself.
 You probably don't need to.</p>
 
-<h4>memleak_threshold</h4>
+<h4>
+<a name="memleak_threshold" class="anchor" href="#memleak_threshold"><span class="octicon octicon-link"></span></a>memleak_threshold</h4>
 
 <p>Set this value to monitor your tasks
 for any runs that increase the memory usage
@@ -299,13 +314,15 @@ By default, it logs the following via standard Celery logging:</p>
 </ul><p>If you'd like to customize this behavior,
 you can override the <code>warn_of_memory_leak</code> method in your own <code>Task</code>.</p>
 
-<h3>Method to Override</h3>
+<h3>
+<a name="method-to-override" class="anchor" href="#method-to-override"><span class="octicon octicon-link"></span></a>Method to Override</h3>
 
 <p>Other than tweaking the member variables,
 you'll probably want to actually, you know,
 <em>do something</em> in your task.</p>
 
-<h4>calculate_result</h4>
+<h4>
+<a name="calculate_result" class="anchor" href="#calculate_result"><span class="octicon octicon-link"></span></a>calculate_result</h4>
 
 <p>This is where your magic happens.
 Do work here and return the result.</p>
@@ -314,17 +331,19 @@ Do work here and return the result.</p>
 call <code>update_progress</code> periodically in this method
 so that your users get an idea of for how long they'll be waiting.</p>
 
-<h3>Progress feedback helper</h3>
+<h3>
+<a name="progress-feedback-helper" class="anchor" href="#progress-feedback-helper"><span class="octicon octicon-link"></span></a>Progress feedback helper</h3>
 
 <p>This is the guy you'll want to call
 to provide nice progress feedback and estimation.</p>
 
-<h4>update_progress</h4>
+<h4>
+<a name="update_progress" class="anchor" href="#update_progress"><span class="octicon octicon-link"></span></a>update_progress</h4>
 
 <p>In your <code>calculate_result</code>,
 you'll want to periodically make calls like:</p>
 
-<div class="highlight"><pre><span class="bp">self</span><span class="o">.</span><span class="n">update_progress</span><span class="p">(</span><span class="n">work_done</span><span class="p">,</span> <span class="n">total_work_to_do</span><span class="p">)</span>
+<div class="highlight highlight-python"><pre><span class="bp">self</span><span class="o">.</span><span class="n">update_progress</span><span class="p">(</span><span class="n">work_done</span><span class="p">,</span> <span class="n">total_work_to_do</span><span class="p">)</span>
 </pre></div>
 
 <p>Jobtastic takes care of handling timers to give estimates,
@@ -343,7 +362,7 @@ with updated estimates no user will ever see.</p>
 <p>In our division example,
 we're only actually updating the progress every 10 division operations:</p>
 
-<div class="highlight"><pre><span class="c"># Only actually update the progress in the backend every 10 operations</span>
+<div class="highlight highlight-python"><pre><span class="c"># Only actually update the progress in the backend every 10 operations</span>
 <span class="n">update_frequency</span> <span class="o">=</span> <span class="mi">10</span>
 <span class="k">for</span> <span class="n">count</span><span class="p">,</span> <span class="n">divisors</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">numerators</span><span class="p">,</span> <span class="n">denominators</span><span class="p">)):</span>
     <span class="n">numerator</span><span class="p">,</span> <span class="n">denominator</span> <span class="o">=</span> <span class="n">divisors</span>
@@ -352,7 +371,8 @@ we're only actually updating the progress every 10 division operations:</p>
     <span class="bp">self</span><span class="o">.</span><span class="n">update_progress</span><span class="p">(</span><span class="n">count</span><span class="p">,</span> <span class="n">divisions_to_do</span><span class="p">,</span> <span class="n">update_frequency</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
 </pre></div>
 
-<h2>Using your JobtasticTask</h2>
+<h2>
+<a name="using-your-jobtastictask" class="anchor" href="#using-your-jobtastictask"><span class="octicon octicon-link"></span></a>Using your JobtasticTask</h2>
 
 <p>Sometimes,
 your <a href="http://celery.github.com/celery/configuration.html#broker-url">Task Broker</a>
@@ -377,7 +397,8 @@ all of your arguments must be keyword arguments.</p>
 <p>Note: This is a limitation of the current <code>signficant_kwargs</code> implementation,
 and totally fixable if someone wants to submit a pull request.</p>
 
-<h3>delay_or_eager</h3>
+<h3>
+<a name="delay_or_eager" class="anchor" href="#delay_or_eager"><span class="octicon octicon-link"></span></a>delay_or_eager</h3>
 
 <p>If your broker is behaving itself,
 this guy acts just like <code>delay()</code>.
@@ -390,7 +411,8 @@ which behaves just like the <code>AsyncResult</code> you were expecting.
 If you have a task that realistically only takes a few seconds to run,
 this might be better than giving yours users an error message.</p>
 
-<h3>delay_or_fail</h3>
+<h3>
+<a name="delay_or_fail" class="anchor" href="#delay_or_fail"><span class="octicon octicon-link"></span></a>delay_or_fail</h3>
 
 <p>Like <code>delay_or_eager</code>,
 this helps you handle a dead broker.
@@ -406,7 +428,8 @@ or consume a lot of RAM,
 you're probably better off using this than <code>delay_or_eager</code>
 because you don't want to make a resource problem worse.</p>
 
-<h2>Client Side Handling</h2>
+<h2>
+<a name="client-side-handling" class="anchor" href="#client-side-handling"><span class="octicon octicon-link"></span></a>Client Side Handling</h2>
 
 <p>That's all well and good on the server side,
 but the biggest benefit of Jobtastic is useful user-facing feedback.
@@ -432,16 +455,18 @@ jQuery plugin might still be useful as reference,
 even if you're rolling your own.
 In general, you'll want to handle the following cases:</p>
 
-<h3>PENDING</h3>
+<h3>
+<a name="pending" class="anchor" href="#pending"><span class="octicon octicon-link"></span></a>PENDING</h3>
 
 <p>Your task is still waiting for a worker process.
 It's generally useful to display something like "Waiting for your task to begin".</p>
 
-<h3>PROGRESS</h3>
+<h3>
+<a name="progress" class="anchor" href="#progress"><span class="octicon octicon-link"></span></a>PROGRESS</h3>
 
 <p>Your task has started and you've got a JSON object like:</p>
 
-<div class="highlight"><pre><span class="p">{</span>
+<div class="highlight highlight-javascript"><pre><span class="p">{</span>
     <span class="s2">"progress_percent"</span><span class="o">:</span> <span class="mi">0</span><span class="p">,</span>
     <span class="s2">"time_remaining"</span><span class="o">:</span> <span class="mi">300</span>
 <span class="p">}</span>
@@ -454,18 +479,21 @@ because the time remaining estimate might not yet be well-calibrated.</p>
 <p><code>time_remaining</code> is the number of seconds estimated to be left.
 If there's no good estimate available, this value will be <code>-1</code>.</p>
 
-<h3>SUCCESS</h3>
+<h3>
+<a name="success" class="anchor" href="#success"><span class="octicon octicon-link"></span></a>SUCCESS</h3>
 
 <p>You've got your data. It's time to display the result.</p>
 
-<h3>FAILURE</h3>
+<h3>
+<a name="failure" class="anchor" href="#failure"><span class="octicon octicon-link"></span></a>FAILURE</h3>
 
 <p>Something went wrong and the worker reported a failure.
 This is a good time to either display a useful error message
 (if the user can be expected to correct the problem),
 or to ask the user to retry their task.</p>
 
-<h3>Non-200 Request</h3>
+<h3>
+<a name="non-200-request" class="anchor" href="#non-200-request"><span class="octicon octicon-link"></span></a>Non-200 Request</h3>
 
 <p>There are occasions where requesting the task status itself might error out.
 This isn't a reflection on the worker itself,
@@ -473,7 +501,8 @@ as it could be caused by any number of application errors.
 In general, you probably want to try again if this happens,
 but if it persists, you'll want to give your user feedback.</p>
 
-<h2>Running The Test Suite</h2>
+<h2>
+<a name="running-the-test-suite" class="anchor" href="#running-the-test-suite"><span class="octicon octicon-link"></span></a>Running The Test Suite</h2>
 
 <p>You can run Jobtastic's test suite yourself via:</p>
 
@@ -491,11 +520,29 @@ across all of our supported python/Django/Celery versions via Tox:</p>
 <pre><code>$ tox
 </code></pre>
 
-<h2>Is it Awesome?</h2>
+<h2>
+<a name="dynamic-time-estimates-via-jobtasticmixins" class="anchor" href="#dynamic-time-estimates-via-jobtasticmixins"><span class="octicon octicon-link"></span></a>Dynamic Time Estimates via JobtasticMixins</h2>
+
+<p>Have tasks whose duration is difficult to estimate
+or that doesn't have smooth progress?
+<a href="https://github.com/abbasovalex/JobtasticMixins">JobtasticMixins</a>
+to the rescue!</p>
+
+<p>JobtasticMixins provides an <code>AVGTimeRedis</code> mixin
+that stores duration date in a Redis backend.
+It then automatically uses this stored historical data
+to calculate an estimate.
+For more details,
+check out <a href="https://github.com/abbasovalex/JobtasticMixins">JobtasticMixins</a>
+on github.</p>
+
+<h2>
+<a name="is-it-awesome" class="anchor" href="#is-it-awesome"><span class="octicon octicon-link"></span></a>Is it Awesome?</h2>
 
 <p>Yes. Increasingly so.</p>
 
-<h2>Project Status</h2>
+<h2>
+<a name="project-status" class="anchor" href="#project-status"><span class="octicon octicon-link"></span></a>Project Status</h2>
 
 <p>Jobtastic is currently known to work
 with Django 1.3-1.5 and Celery 2.5-3.0.
@@ -503,7 +550,8 @@ The goal is to support those versions and newer.
 Please file issues if there are problems
 with newer versions of Django/Celery.</p>
 
-<h3>A note on usage with Flask</h3>
+<h3>
+<a name="a-note-on-usage-with-flask" class="anchor" href="#a-note-on-usage-with-flask"><span class="octicon octicon-link"></span></a>A note on usage with Flask</h3>
 
 <p>If you're using Flask instead of Django,
 then the only currently-supported way to work with Jobtastic
@@ -516,7 +564,8 @@ and pull requests
 or suggestions are very welcome.
 We'd also love some Flask-specific tests!</p>
 
-<h2>Non-affiliation</h2>
+<h2>
+<a name="non-affiliation" class="anchor" href="#non-affiliation"><span class="octicon octicon-link"></span></a>Non-affiliation</h2>
 
 <p>This project isn't affiliated with the awesome folks at the
 <a href="http://www.celeryproject.org">Celery Project</a>
@@ -527,7 +576,7 @@ and decided to open source in the hopes it is useful to others.</p>
       </section>
       <footer>
         <p>Project maintained by <a href="https://github.com/PolicyStat">PolicyStat</a></p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="http://twitter.com/#!/michigangraham">mattgraham</a></small></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://twitter.com/michigangraham">mattgraham</a></small></p>
       </footer>
     </div>
     <!--[if !IE]><script>fixScale(document);</script><![endif]-->

@@ -369,64 +369,6 @@ or consume a lot of RAM,
 you're probably better off using this than `delay_or_eager`
 because you don't want to make a resource problem worse.
 
-
-## Using with JobtasticMixins
-
-[JobtasticMixins](https://github.com/abbasovalex/JobtasticMixins) 
-package was created for more fun. Currently it can be used
-users who uses RedisDB, but in the future it may be expanded for RabbitMQ and
-MongoDB. For more details [see official page](https://github.com/abbasovalex/JobtasticMixins)
-
-### Example with AVGTimeRedis class
-
-The class that helps automate calculate an avarage time for different kind
-tasks and saves result into Redis DB
-
-Let's take a look at the example task using with JobtasticMixins and
-AVGTimeRedis class:
-
-``` python
-from time import sleep
-from jobtastic import JobtasticTask
-from jobtasticmixins import AVGTimeRedis
-
-
-class LotsOfDivisionTask(AVGTimeRedis, JobtasticTask):
-    """
-    Division is hard. Make Celery do it a bunch.
-    """
-    significant_kwargs = [
-        ('numerators', str),
-        ('denominators', str),
-    ]
-    herd_avoidance_timeout = 60
-    cache_duration = 0
-    # optional variable was added. by default is 30 seconds   
-    default_avg_time = 90
-
-    def calculate_result(self, numerators, denominators, **kwargs):
-        results = []
-        for count, divisors in enumerate(zip(numerators, denominators)):
-            numerator, denominator = divisors
-            results.append(numerator / denominator)
-            # it will be auto calculated
-            self.update_progress()
-            sleep(0.1)
-
-        # set finish=True for avoid trouble
-        self.update_progress(finish=True)
-        return results
-
-```
-
-Under the hood:
-
-1. AVGTimeRedis gets settings.BROKER_URL and connects to Redis 
-2. It counts the tasks and the workers and uses to calculating 
-
-More details you can see into [source](https://github.com/abbasovalex/JobtasticMixins/blob/master/jobtasticmixins/mixins.py)
-
-
 ## Client Side Handling
 
 That's all well and good on the server side,
@@ -509,6 +451,21 @@ You can also run tests
 across all of our supported python/Django/Celery versions via Tox:
 
     $ tox
+
+## Dynamic Time Estimates via JobtasticMixins
+
+Have tasks whose duration is difficult to estimate
+or that doesn't have smooth progress?
+[JobtasticMixins](https://github.com/abbasovalex/JobtasticMixins)
+to the rescue!
+
+JobtasticMixins provides an `AVGTimeRedis` mixin
+that stores duration date in a Redis backend.
+It then automatically uses this stored historical data
+to calculate an estimate.
+For more details,
+check out [JobtasticMixins](https://github.com/abbasovalex/JobtasticMixins)
+on github.
 
 ## Is it Awesome?
 

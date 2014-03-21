@@ -39,9 +39,18 @@ You could write all of the stuff yourself, but why?
 
 ## Installation
 
-1. Get the project source and install it
+1. Install gcc and the python C headers
+   so that you can build [psutil](http://psutil.googlecode.com/hg/INSTALL).
 
-    $ pip install jobtastic
+  On Ubuntu, that means running:
+  
+  `$ sudo apt-get install build-essential python-dev`
+  
+  On OS X, you'll need to run the "XcodeTools" installer.
+  
+2. Get the project source and install it
+
+    `$ pip install jobtastic`
 
 ## Creating Your First Task
 

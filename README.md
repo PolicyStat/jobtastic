@@ -237,7 +237,7 @@ should try to just re-use the cached result.
 The default is -1,
 meaning don't do any caching.
 Remember,
-`JobtasticTask` uses your `signficant_kwargs` to determine what is identical.
+`JobtasticTask` uses your `significant_kwargs` to determine what is identical.
 
 #### cache_prefix
 
@@ -346,7 +346,7 @@ and do something a little more production-friendly.
 Note: One very important caveat with `JobtasticTask` is that
 all of your arguments must be keyword arguments.
 
-Note: This is a limitation of the current `signficant_kwargs` implementation,
+Note: This is a limitation of the current `significant_kwargs` implementation,
 and totally fixable if someone wants to submit a pull request.
 
 ### delay_or_eager

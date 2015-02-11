@@ -11,24 +11,26 @@ except ImportError:
     from celery.tests.case import AppCase
 # eager_tasks was removed in celery 3.1
 from jobtastic.tests.utils import eager_tasks
+from jobtastic import JobtasticTask
 
-USING_CELERY_2_X = False
 try:
     from kombu.transport.pyamqp import (
         Channel as AmqpChannel,
     )
-    from kombu.exceptions import StdChannelError, StdConnectionError
 except ImportError:
-    USING_CELERY_2_X = True
     from kombu.transport.amqplib import (
         Channel as AmqpChannel,
     )
+# Kombu>=2.1 doesn't have StdConnectionError or StdChannelError, but the 2.1
+# amqp Transport uses an IOError, so we'll just test with that.
+try:
     from kombu.exceptions import StdChannelError
-    # Kombu 2.1 doesn' thave a StdConnectionError, but the 2.1 amqp Transport
-    # uses an IOError, so we'll just test with that
+except ImportError:
+    StdChannelError = IOError
+try:
+    from kombu.exceptions import StdConnectionError
+except ImportError:
     StdConnectionError = IOError
-
-from jobtastic import JobtasticTask
 
 
 class ParrotTask(JobtasticTask):

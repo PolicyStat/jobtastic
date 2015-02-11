@@ -95,6 +95,7 @@ def reqs(*f):
         os.path.join(os.getcwd(), 'requirements', *f)).readlines()]))
 
 install_requires = reqs('default.txt')
+tests_require = reqs('tests.txt')
 
 # -*- Test Runners -*-
 
@@ -115,19 +116,28 @@ class RunDjangoTests(Command):
         os.chdir(django_testproj_dir)
         sys.path.append(django_testproj_dir)
 
-        from django.core.management import execute_manager
         os.environ['DJANGO_SETTINGS_MODULE'] = os.environ.get(
             'DJANGO_SETTINGS_MODULE',
             'testproj.settings',
         )
-        settings_file = os.environ['DJANGO_SETTINGS_MODULE']
-        settings_mod = __import__(settings_file, {}, {}, [''])
-        prev_argv = list(sys.argv)
+
+        django_1_4 = False
         try:
-            sys.argv = [__file__, 'test'] + self.extra_args
-            execute_manager(settings_mod, argv=sys.argv)
-        finally:
-            sys.argv = prev_argv
+            from django.core.management import execute_manager as run_command
+            django_1_4 = True
+        except ImportError:
+            # execute_manager was renamed in Django 1.6
+            from django.core.management import (
+                execute_from_command_line as run_command,
+            )
+
+        modified_args = [__file__, 'test'] + self.extra_args
+        if django_1_4:
+            settings_file = os.environ['DJANGO_SETTINGS_MODULE']
+            settings_mod = __import__(settings_file, {}, {}, [''])
+            run_command(settings_mod, argv=modified_args)
+        else:
+            run_command(modified_args)
 
     def initialize_options(self):
         pass
@@ -152,4 +162,5 @@ setup(
         'test': RunDjangoTests,
     },
     install_requires=install_requires,
+    tests_require=tests_require,
 )

@@ -43,11 +43,11 @@ You could write all of the stuff yourself, but why?
    so that you can build [psutil](http://psutil.googlecode.com/hg/INSTALL).
 
   On Ubuntu, that means running:
-  
+
   `$ sudo apt-get install build-essential python-dev`
-  
+
   On OS X, you'll need to run the "XcodeTools" installer.
-  
+
 2. Get the project source and install it
 
     `$ pip install jobtastic`
@@ -447,19 +447,24 @@ but if it persists, you'll want to give your user feedback.
 
 ## Running The Test Suite
 
-You can run Jobtastic's test suite yourself via:
+We use [tox](https://tox.readthedocs.org/en/latest/)
+to run our tests against various combinations
+of python/Django/Celery.
+We only officially support
+the combinations listed in our `.travis.yml` file,
+but we're working on
+([Issue 33](https://github.com/PolicyStat/jobtastic/issues/33))
+supporting everything defined in `tox.ini`.
+Until then,
+you can run tests against supported combos with:
 
-    $ python setup.py test
+    $ pip install tox
+    $ tox -e py26-django1.4.X-djangocelery2.5.X-celery2.5.X
 
 Our test suite currently only tests usage with Django,
 which is definitely a [bug](https://github.com/PolicyStat/jobtastic/issues/15).
 Especially if you use Jobtastic with Flask,
 we would love a pull request.
-
-You can also run tests
-across all of our supported python/Django/Celery versions via Tox:
-
-    $ tox
 
 ## Dynamic Time Estimates via JobtasticMixins
 

@@ -54,7 +54,7 @@ if cache is None:
         "Jobtastic requires either Django or Flask + Memcached result backend")
 
 
-from jobtastic.states import PROGRESS
+from jobtastic.states import PROGRESS  # NOQA
 
 
 @contextmanager

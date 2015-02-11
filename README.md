@@ -448,12 +448,12 @@ but if it persists, you'll want to give your user feedback.
 ## Running The Test Suite
 
 We use [tox](https://tox.readthedocs.org/en/latest/)
-to run our tests again various combinations
+to run our tests against various combinations
 of python/Django/Celery.
 We only officially support
 the combinations listed in our `.travis.yml` file,
 but we're working on
-(checkout out [Issue 33](https://github.com/PolicyStat/jobtastic/issues/33))
+([Issue 33](https://github.com/PolicyStat/jobtastic/issues/33))
 supporting everything defined in `tox.ini`.
 Until then,
 you can run tests against supported combos with:

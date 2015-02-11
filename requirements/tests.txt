@@ -1,3 +1,4 @@
+django
 django-nose
 unittest2
 mock

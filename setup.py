@@ -95,6 +95,7 @@ def reqs(*f):
         os.path.join(os.getcwd(), 'requirements', *f)).readlines()]))
 
 install_requires = reqs('default.txt')
+tests_require = reqs('tests.txt')
 
 # -*- Test Runners -*-
 
@@ -152,4 +153,5 @@ setup(
         'test': RunDjangoTests,
     },
     install_requires=install_requires,
+    tests_require=tests_require,
 )

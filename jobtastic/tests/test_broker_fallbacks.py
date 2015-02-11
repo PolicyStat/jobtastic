@@ -28,7 +28,7 @@ try:
 except ImportError:
     StdChannelError = IOError
 try:
-    from kombu.exceptions import StdChannelError
+    from kombu.exceptions import StdConnectionError
 except ImportError:
     StdConnectionError = IOError
 

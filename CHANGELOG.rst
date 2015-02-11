@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.3.0
+-----
+
+* Dropped support for Django 1.3.
+  It's no longer getting security updates.
+
 0.2.2
 -----
 

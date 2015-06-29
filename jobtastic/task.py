@@ -445,7 +445,7 @@ class JobtasticTask(Task):
 
     def _get_memory_usage(self):
         current_process = psutil.Process(os.getpid())
-        usage = current_process.get_memory_info()
+        usage = current_process.memory_info()
 
         return usage.rss
 

@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.3.1
+-----
+
+* Switched to the psutil 3.0 API.
+
 0.3.0
 -----
 

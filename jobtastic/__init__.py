@@ -15,6 +15,7 @@ __all__ = (
 # -eof meta-
 
 # Reserved for default settings
+# works on Ubuntu after ~$ sudo apt-get install libmemcached-dev
 DEFAULT_RESULT_BACKEND = 'cache'
 DEFAULT_CACHE_BACKEND = 'memcached://127.0.0.1:11211/'
 

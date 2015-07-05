@@ -13,5 +13,4 @@ __all__ = (
 )
 
 # -eof meta-
-
 from jobtastic.task import JobtasticTask  # NOQA

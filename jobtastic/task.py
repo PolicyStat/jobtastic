@@ -13,6 +13,7 @@ import sys
 import warnings
 from contextlib import contextmanager
 from hashlib import md5
+from warnings import warn
 
 import psutil
 
@@ -28,6 +29,8 @@ except ImportError:
     pass  # get_task_logger is new in Celery 3.X
 
 cache = None
+
+
 try:
     # For now, let's just say that if Django exists, we should use it.
     # Otherwise, try Flask. This definitely needs an actual configuration
@@ -35,6 +38,8 @@ try:
     from django.core.cache import cache
     HAS_DJANGO = True
 except ImportError:
+    HAS_DJANGO = False
+    warn('Jobtastic failed to import django cache, looking for celery backend now...')
     try:
         # We should really have an explicitly-defined way of doing this, but
         # for now, let's just use werkzeug Memcached if it exists
@@ -47,14 +52,33 @@ except ImportError:
             cache = MemcachedCache(uris)
             HAS_WERKZEUG = True
     except ImportError:
-        pass
+        HAS_WERKZEUG = False
+        warn('Jobtastic failed to use celery backend, trying with default settings now...')
+
+        try:
+            from werkzeug.contrib.cache import MemcachedCache
+            from . import DEFAULT_CACHE_BACKEND, DEFAULT_RESULT_BACKEND
+            if DEFAULT_RESULT_BACKEND == 'cache':
+                uri_str = DEFAULT_CACHE_BACKEND.strip('memcached://')
+                uris = uri_str.split(';')
+                cache = MemcachedCache(uris)
+                HAS_WERKZEUG = True
+        except Exception:
+            HAS_WERKZEUG = False
+            warn("\n"+
+                 "Jobtastic failed to use default settings\n" +
+                 "  DEFAULT_RESULT_BACKEND: " + DEFAULT_RESULT_BACKEND + "\n" +
+                 "  DEFAULT_CACHsE_BACKEND: " + DEFAULT_CACHE_BACKEND + "\n" +
+                 "\n"
+                 )
+            raise Exception
 
 if cache is None:
     raise Exception(
         "Jobtastic requires either Django or Flask + Memcached result backend")
 
 
-from jobtastic.states import PROGRESS  # NOQA
+from .states import PROGRESS  # NOQA
 
 
 @contextmanager

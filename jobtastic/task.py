@@ -63,15 +63,10 @@ except ImportError:
                 uris = uri_str.split(';')
                 cache = MemcachedCache(uris)
                 HAS_WERKZEUG = True
-        except Exception:
+        except Exception, e:
             HAS_WERKZEUG = False
-            warn("\n"+
-                 "Jobtastic failed to use default settings\n" +
-                 "  DEFAULT_RESULT_BACKEND: " + DEFAULT_RESULT_BACKEND + "\n" +
-                 "  DEFAULT_CACHsE_BACKEND: " + DEFAULT_CACHE_BACKEND + "\n" +
-                 "\n"
-                 )
-            raise Exception
+            warn("Jobtastic failed to use default settings")
+            raise e
 
 if cache is None:
     raise Exception(

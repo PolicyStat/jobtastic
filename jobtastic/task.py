@@ -63,6 +63,7 @@ except ImportError:
                 uris = uri_str.split(';')
                 cache = MemcachedCache(uris)
                 HAS_WERKZEUG = True
+                warn('Jobtastic uses default settings now')
         except Exception, e:
             HAS_WERKZEUG = False
             warn("Jobtastic failed to use default settings")
@@ -244,6 +245,7 @@ class JobtasticTask(Task):
         synchronizing the task uuid. Additionally, identical task calls will
         return those results for the next ``cache_duration`` seconds.
         """
+
         self._validate_required_class_vars()
 
         cache_key = self._get_cache_key(**kwargs)

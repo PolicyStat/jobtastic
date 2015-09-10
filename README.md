@@ -40,7 +40,7 @@ You could write all of the stuff yourself, but why?
 ## Installation
 
 1. Install gcc and the python C headers
-   so that you can build [psutil](http://psutil.googlecode.com/hg/INSTALL).
+   so that you can build [psutil](https://github.com/giampaolo/psutil/blob/master/INSTALL.rst).
 
   On Ubuntu, that means running:
 

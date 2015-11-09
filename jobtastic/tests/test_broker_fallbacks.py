@@ -79,7 +79,7 @@ class BrokenBrokerTestCase(AppCase):
         # BROKER_URL
         del self.app.amqp
 
-        self.old_broker_host = self.app.conf.BROKER_HOST
+        self.old_broker_host = self.app.conf.BROKER_HOST or ''
 
         # Modifying the broken host name simulates the task broker being
         # 'unresponsive'
@@ -99,7 +99,15 @@ class BrokenBrokerTestCase(AppCase):
         self._set_broker_host(self.old_broker_host)
 
     def test_sanity(self):
-        self.assertRaises(IOError, self.task.delay, result=1)
+        try:
+            result = self.task.delay()
+        except IOError:
+            pass  # Celery 3
+        except KeyError:
+            pass  # Celery 2.5
+        else:
+            print result
+            raise AssertionError('Exception should have been raised')
 
     @error_if_calculate_result_patch
     def test_delay_or_fail_bad_connection(self, mock_calculate_result):

@@ -44,7 +44,7 @@ You could write all of the stuff yourself, but why?
 
   On Ubuntu, that means running:
 
-  `$ sudo apt-get install build-essential python-dev`
+  `$ sudo apt-get install build-essential python-dev python2.6-dev python2.7-dev rabbitmq-server`
 
   On OS X, you'll need to run the "XcodeTools" installer.
 

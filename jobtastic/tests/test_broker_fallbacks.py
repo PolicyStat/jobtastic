@@ -10,8 +10,8 @@ except ImportError:
     # AppCase was moved in Celery 3.1
     from celery.tests.case import AppCase
 # eager_tasks was removed in celery 3.1
-from jobtastic.tests.utils import eager_tasks
 from jobtastic import JobtasticTask
+from django.test import TestCase
 
 try:
     from kombu.transport.pyamqp import (
@@ -79,7 +79,7 @@ class BrokenBrokerTestCase(AppCase):
         # BROKER_URL
         del self.app.amqp
 
-        self.old_broker_host = self.app.conf.BROKER_HOST
+        self.old_broker_host = self.app.conf.BROKER_HOST or ''
 
         # Modifying the broken host name simulates the task broker being
         # 'unresponsive'
@@ -99,7 +99,15 @@ class BrokenBrokerTestCase(AppCase):
         self._set_broker_host(self.old_broker_host)
 
     def test_sanity(self):
-        self.assertRaises(IOError, self.task.delay, result=1)
+        try:
+            result = self.task.delay()
+        except IOError:
+            pass  # Celery 3
+        except KeyError:
+            pass  # Celery 2.5
+        else:
+            print result
+            raise AssertionError('Exception should have been raised')
 
     @error_if_calculate_result_patch
     def test_delay_or_fail_bad_connection(self, mock_calculate_result):
@@ -148,20 +156,20 @@ calculate_result_returns_one_patch = mock.patch.object(
 )
 
 
-class WorkingBrokerTestCase(AppCase):
-    def setup(self):
+class WorkingBrokerTestCase(TestCase):
+    def setUp(self):
         self.task = ParrotTask
 
     def test_sanity(self):
         # The task actually runs
-        with eager_tasks(self.app):
+        with self.settings(CELERY_ALWAYS_EAGER=True):
             async_task = self.task.delay(result=1)
         self.assertEqual(async_task.status, states.SUCCESS)
         self.assertEqual(async_task.result, 1)
 
     @calculate_result_returns_one_patch
     def test_delay_or_fail_runs(self, mock_calculate_result):
-        with eager_tasks(self.app):
+        with self.settings(CELERY_ALWAYS_EAGER=True):
             async_task = self.task.delay_or_fail(result=1)
         self.assertEqual(async_task.status, states.SUCCESS)
         self.assertEqual(async_task.result, 1)
@@ -170,7 +178,7 @@ class WorkingBrokerTestCase(AppCase):
 
     @calculate_result_returns_one_patch
     def test_delay_or_run_runs(self, mock_calculate_result):
-        with eager_tasks(self.app):
+        with self.settings(CELERY_ALWAYS_EAGER=True):
             async_task, _ = self.task.delay_or_run(result=1)
         self.assertEqual(async_task.status, states.SUCCESS)
         self.assertEqual(async_task.result, 1)
@@ -179,7 +187,7 @@ class WorkingBrokerTestCase(AppCase):
 
     @calculate_result_returns_one_patch
     def test_delay_or_eager_runs(self, mock_calculate_result):
-        with eager_tasks(self.app):
+        with self.settings(CELERY_ALWAYS_EAGER=True):
             async_task = self.task.delay_or_eager(result=1)
         self.assertEqual(async_task.status, states.SUCCESS)
         self.assertEqual(async_task.result, 1)

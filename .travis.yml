@@ -1,4 +1,5 @@
 language: python
+sudo: false
 python: 2.7
 env:
   - TOX_ENV=py26-django1.4.X-djangocelery2.5.X-celery2.5.X

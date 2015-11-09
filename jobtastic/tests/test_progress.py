@@ -3,13 +3,7 @@ import mock
 
 from celery.result import BaseAsyncResult
 from celery.states import SUCCESS
-try:
-    from celery.tests.utils import AppCase
-except ImportError:
-    # AppCase was moved in Celery 3.1
-    from celery.tests.case import AppCase
-# eager_tasks was removed in celery 3.1
-from jobtastic.tests.utils import eager_tasks
+from django.test import TestCase
 
 from jobtastic import JobtasticTask
 from jobtastic.states import PROGRESS
@@ -43,13 +37,13 @@ def task_status_is_progress(self, **kwargs):
     assert meta.status == PROGRESS
 
 
-class ProgressTestCase(AppCase):
-    def setup(self):
+class ProgressTestCase(TestCase):
+    def setUp(self):
         self.task = ProgressTask
 
     def test_sanity(self):
         # The task actually runs
-        with eager_tasks(self.app):
+        with self.settings(CELERY_ALWAYS_EAGER=True):
             async_task = self.task.delay(count_to=2)
         self.assertEqual(async_task.status, SUCCESS)
         self.assertEqual(async_task.result, 2)
@@ -57,7 +51,7 @@ class ProgressTestCase(AppCase):
     def test_starts_with_progress_state(self):
         # The state has already been set to PROGRESS before `calculate_result`
         # starts
-        with eager_tasks(self.app):
+        with self.settings(CELERY_ALWAYS_EAGER=True):
             with mock.patch.object(
                 self.task,
                 'calculate_result',

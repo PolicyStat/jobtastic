@@ -2,3 +2,4 @@ django-nose
 unittest2
 mock
 django-picklefield==0.3.1
+six

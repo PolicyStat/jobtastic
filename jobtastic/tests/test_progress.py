@@ -1,4 +1,4 @@
-
+import six
 import mock
 
 from celery.result import BaseAsyncResult
@@ -20,7 +20,7 @@ class ProgressTask(JobtasticTask):
 
     def calculate_result(self, count_to, **kwargs):
         update_frequency = 2
-        for counter in xrange(count_to):
+        for counter in six.moves.range(count_to):
             self.update_progress(
                 counter,
                 count_to,

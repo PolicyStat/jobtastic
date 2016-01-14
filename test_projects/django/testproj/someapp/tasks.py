@@ -1,8 +1,14 @@
 import string
 import random
 
+from django.utils import six
+
 from jobtastic import JobtasticTask
 
+if six.PY3:
+    per_character_factor = 4  # py3 unicode characters take less memory
+else:
+    per_character_factor = 1
 leaky_global = []
 
 
@@ -21,12 +27,12 @@ class BaseMemLeakyTask(JobtasticTask):
         """
         global leaky_global
 
-        for _ in xrange(bloat_factor):
+        for _ in six.moves.range(bloat_factor):
             # 1 million bytes for a MB
-            new_str = u'X' * 1000000
+            new_str = u'X' * (1000000 * per_character_factor)
             # Add something new to it so python can't just point to the same
             # memory location
-            new_str += random.choice(string.letters)
+            new_str += random.choice(string.ascii_letters)
             leaky_global.append(new_str)
 
         return bloat_factor

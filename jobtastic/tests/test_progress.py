@@ -1,4 +1,7 @@
-
+try:
+    import xrange  # Python 2
+except ImportError:
+    import range as xrange  # Python 3
 import mock
 
 from celery.result import BaseAsyncResult

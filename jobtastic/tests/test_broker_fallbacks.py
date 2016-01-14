@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 
 import mock
@@ -106,7 +107,7 @@ class BrokenBrokerTestCase(AppCase):
         except KeyError:
             pass  # Celery 2.5
         else:
-            print result
+            print(result)
             raise AssertionError('Exception should have been raised')
 
     @error_if_calculate_result_patch

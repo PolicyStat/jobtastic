@@ -42,12 +42,15 @@ INSTALLED_APPS = (
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.sites',
-    'djcelery',
     'testproj.someapp',
     'jobtastic',
     'django_nose',
 )
-
+try:
+    import djcelery
+    INSTALLED_APPS += ('djcelery', )
+except ImportError:
+    pass
 
 NOSE_ARGS = [
     os.path.join(here, os.pardir, os.pardir, os.pardir, 'jobtastic', 'tests'),

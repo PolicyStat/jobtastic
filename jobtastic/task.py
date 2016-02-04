@@ -435,7 +435,12 @@ class JobtasticTask(Task):
         m = md5()
         for significant_kwarg in self.significant_kwargs:
             key, to_str = significant_kwarg
-            m.update(to_str(kwargs[key]))
+            try:
+                m.update(to_str(kwargs[key]))
+            except TypeError:
+                # Python 3.x strings aren't accepted by hash.update().
+                # String should be byte-encoded first.
+                m.update(to_str(kwargs[key]).encode('utf-8'))
 
         if hasattr(self, 'cache_prefix'):
             cache_prefix = self.cache_prefix

@@ -149,7 +149,7 @@ class JobtasticTask(Task):
             return self.apply_async(args, kwargs, **options)
         except possible_broker_errors:
             return self.apply(args, kwargs, **options)
-    
+
     @classmethod
     def async_or_fail(self, **options):
         """

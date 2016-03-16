@@ -115,24 +115,24 @@ class BrokenBrokerTestCase(AppCase):
         # Loop through all of the possible connection errors and ensure they're
         # properly handled
         with basic_publish_connection_error_patch:
-            async_task = self.task.async_or_fail(kwargs={"result":1})
+            async_task = self.task.async_or_fail(kwargs={"result": 1})
         self.assertEqual(async_task.status, states.FAILURE)
 
     @error_if_calculate_result_patch
     def test_async_or_fail_bad_channel(self, mock_calculate_result):
         with basic_publish_channel_error_patch:
-            async_task = self.task.async_or_fail(kwargs={"result":1})
+            async_task = self.task.async_or_fail(kwargs={"result": 1})
         self.assertEqual(async_task.status, states.FAILURE)
 
     def test_async_or_eager_bad_connection(self):
         with basic_publish_connection_error_patch:
-            async_task = self.task.async_or_eager(kwargs={"result":27})
+            async_task = self.task.async_or_eager(kwargs={"result": 27})
         self.assertEqual(async_task.status, states.SUCCESS)
         self.assertEqual(async_task.result, 27)
 
     def test_async_or_eager_bad_channel(self):
         with basic_publish_channel_error_patch:
-            async_task = self.task.async_or_eager(kwargs={"result":27})
+            async_task = self.task.async_or_eager(kwargs={"result": 27})
         self.assertEqual(async_task.status, states.SUCCESS)
         self.assertEqual(async_task.result, 27)
 
@@ -197,7 +197,7 @@ class WorkingBrokerTestCase(TestCase):
     @calculate_result_returns_one_patch
     def test_async_or_fail_runs(self, mock_calculate_result):
         with self.settings(CELERY_ALWAYS_EAGER=True):
-            async_task = self.task.async_or_fail(kwargs={"result":1})
+            async_task = self.task.async_or_fail(kwargs={"result": 1})
         self.assertEqual(async_task.status, states.SUCCESS)
         self.assertEqual(async_task.result, 1)
 
@@ -206,7 +206,7 @@ class WorkingBrokerTestCase(TestCase):
     @calculate_result_returns_one_patch
     def test_async_or_eager_runs(self, mock_calculate_result):
         with self.settings(CELERY_ALWAYS_EAGER=True):
-            async_task = self.task.async_or_eager(kwargs={"result":1})
+            async_task = self.task.async_or_eager(kwargs={"result": 1})
         self.assertEqual(async_task.status, states.SUCCESS)
         self.assertEqual(async_task.result, 1)
 

@@ -137,16 +137,41 @@ class JobtasticTask(Task):
     abstract = True
 
     @classmethod
-    def delay_or_eager(self, *args, **kwargs):
+    def async_or_eager(self, **options):
         """
-        Attempt to call self.delay, or if that fails because of a problem with
-        the broker, run the task eagerly and return an EagerResult.
+        Attempt to call self.apply_async, or if that fails because of a problem
+        with the broker, run the task eagerly and return an EagerResult.
         """
+        args = options.pop("args", None)
+        kwargs = options.pop("kwargs", None)
         possible_broker_errors = self._get_possible_broker_errors_tuple()
         try:
-            return self.apply_async(args=args, kwargs=kwargs)
+            return self.apply_async(args, kwargs, **options)
         except possible_broker_errors:
-            return self.apply(args=args, kwargs=kwargs)
+            return self.apply(args, kwargs, **options)
+    
+    @classmethod
+    def async_or_fail(self, **options):
+        """
+        Attempt to call self.apply_async, but if that fails with an exception,
+        we fake the task completion using the exception as the result. This
+        allows us to seamlessly handle errors on task creation the same way we
+        handle errors when a task runs, simplifying the user interface.
+        """
+        args = options.pop("args", None)
+        kwargs = options.pop("kwargs", None)
+        possible_broker_errors = self._get_possible_broker_errors_tuple()
+        try:
+            return self.apply_async(args, kwargs, **options)
+        except possible_broker_errors as e:
+            return self.simulate_async_error(e)
+
+    @classmethod
+    def delay_or_eager(self, *args, **kwargs):
+        """
+        Wrap async_or_eager with a convenience signiture like delay
+        """
+        return self.async_or_eager(args=args, kwargs=kwargs)
 
     @classmethod
     def delay_or_run(self, *args, **kwargs):
@@ -173,16 +198,9 @@ class JobtasticTask(Task):
     @classmethod
     def delay_or_fail(self, *args, **kwargs):
         """
-        Attempt to call self.delay, but if that fails with an exception, we
-        fake the task completion using the exception as the result. This allows
-        us to seamlessly handle errors on task creation the same way we handle
-        errors when a task runs, simplifying the user interface.
+        Wrap async_or_fail with a convenience signiture like delay
         """
-        possible_broker_errors = self._get_possible_broker_errors_tuple()
-        try:
-            return self.apply_async(args=args, kwargs=kwargs)
-        except possible_broker_errors as e:
-            return self.simulate_async_error(e)
+        return self.async_or_fail(args=args, kwargs=kwargs)
 
     @classmethod
     def _get_possible_broker_errors_tuple(self):

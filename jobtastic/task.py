@@ -230,7 +230,7 @@ class JobtasticTask(Task):
         cache_key = self._get_cache_key(**kwargs)
 
         # Check for an already-computed and cached result
-        task_id = self._get_cache_value(key=cache_key)  # Check for the cached result
+        task_id = self._get_cache_value(key=cache_key)
         if task_id:
             # We've already built this result, just latch on to the task that
             # did the work
@@ -239,7 +239,7 @@ class JobtasticTask(Task):
             return self.AsyncResult(task_id)
 
         # Check for an in-progress equivalent task to avoid duplicating work
-        task_id = self._get_cache_value(key=cache_key, prefix='herd')  # Check for the cached result
+        task_id = self._get_cache_value(key=cache_key, prefix='herd')
         if task_id:
             logging.info('Found existing in-progress task: %s', task_id)
             return self.AsyncResult(task_id)

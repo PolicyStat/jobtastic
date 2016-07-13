@@ -4,7 +4,7 @@ import codecs
 import os
 import sys
 
-from setuptools import setup, Command
+from setuptools import setup, find_packages, Command
 
 long_description = codecs.open("README.md", "r", "utf-8").read()
 
@@ -154,7 +154,7 @@ setup(
     author_email=meta['contact'],
     url=meta['homepage'],
     long_description=long_description,
-    packages=[NAME],
+    packages=find_packages(),
     license='BSD',
     platforms=['any'],
     classifiers=CLASSIFIERS,

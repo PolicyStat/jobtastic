@@ -3,6 +3,28 @@ from celery.backends.cache import CacheBackend
 from celery.backends.redis import RedisBackend
 from .base import BaseCache, WrappedCache
 
+CACHES = []
+try:
+    from django.core.cache import InvalidCacheBackendError
+    CACHES.append('Django')
+    # Now we know we have a Django cache, allow for both 1.6 and 1.7+
+    try:
+        from django.core.cache import caches
+
+        def get_django_cache(cache):
+            return caches[cache]
+    except ImportError:
+        # No caches, using Django <= 1.6
+        from django.core.cache import get_cache as get_django_cache
+except ImportError:
+    pass
+
+try:
+    from werkzeug.contrib.cache import MemcachedCache, RedisCache
+    CACHES.append('Werkzeug')
+except ImportError:
+    pass
+
 
 def get_cache(app):
     """
@@ -23,10 +45,7 @@ def get_cache(app):
     if isinstance(jobtastic_cache_setting, BaseCache):
         return jobtastic_cache_setting
 
-    # Try Django
-    try:
-        from django.core.cache import (get_cache as get_django_cache,
-                                       InvalidCacheBackendError)
+    if 'Django' in CACHES:
         if jobtastic_cache_setting:
             try:
                 return WrappedCache(get_django_cache(jobtastic_cache_setting))
@@ -34,23 +53,18 @@ def get_cache(app):
                 pass
         else:
             return WrappedCache(get_django_cache('default'))
-    except ImportError:
-        pass
 
-    # Try Werkzeug
-    try:
-        from werkzeug.contrib.cache import MemcachedCache, RedisCache
+    if 'Werkzeug' in CACHES:
         if jobtastic_cache_setting:
             backend, url = get_backend_by_url(jobtastic_cache_setting)
             backend = backend(app=app, url=url)
         else:
             backend = app.backend
+
         if isinstance(backend, CacheBackend):
             return WrappedCache(MemcachedCache(backend.client))
         elif isinstance(backend, RedisBackend):
             return WrappedCache(RedisCache(backend.client))
-    except ImportError:
-        pass
 
     # Give up
     raise RuntimeError('Cannot find a suitable cache for Jobtastic')

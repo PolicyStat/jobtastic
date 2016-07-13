@@ -25,14 +25,15 @@ def get_cache(app):
 
     # Try Django
     try:
-        from django.core.cache import caches, InvalidCacheBackendError
+        from django.core.cache import (get_cache as get_django_cache,
+                                       InvalidCacheBackendError)
         if jobtastic_cache_setting:
             try:
-                return WrappedCache(caches[jobtastic_cache_setting])
+                return WrappedCache(get_django_cache(jobtastic_cache_setting))
             except InvalidCacheBackendError:
                 pass
         else:
-            return WrappedCache(caches['default'])
+            return WrappedCache(get_django_cache('default'))
     except ImportError:
         pass
 

@@ -44,7 +44,7 @@ You could write all of the stuff yourself, but why?
 
   On Ubuntu, that means running:
 
-  `$ sudo apt-get install build-essential python-dev python2.7-dev rabbitmq-server`
+  `$ sudo apt-get install build-essential python-dev python2.7-dev python3.5-dev rabbitmq-server`
 
   On OS X, you'll need to run the "XcodeTools" installer.
 
@@ -488,7 +488,7 @@ Yes. Increasingly so.
 ## Project Status
 
 Jobtastic is currently known to work
-with Django 1.8+ and Celery 3.1.
+with Django 1.6+ and Celery 3.1.X
 The goal is to support those versions and newer.
 Please file issues if there are problems
 with newer versions of Django/Celery.

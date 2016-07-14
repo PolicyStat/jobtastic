@@ -121,12 +121,10 @@ class RunDjangoTests(Command):
             'testproj.settings',
         )
 
-        from django.core.management import (
-            execute_from_command_line as run_command,
-        )
+        from django.core.management import execute_from_command_line
 
         modified_args = [__file__, 'test'] + self.extra_args
-        run_command(modified_args)
+        execute_from_command_line(modified_args)
 
     def initialize_options(self):
         pass

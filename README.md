@@ -44,7 +44,7 @@ You could write all of the stuff yourself, but why?
 
   On Ubuntu, that means running:
 
-  `$ sudo apt-get install build-essential python-dev python2.6-dev python2.7-dev rabbitmq-server`
+  `$ sudo apt-get install build-essential python-dev python2.7-dev python3.5-dev rabbitmq-server`
 
   On OS X, you'll need to run the "XcodeTools" installer.
 
@@ -459,7 +459,7 @@ Until then,
 you can run tests against supported combos with:
 
     $ pip install tox
-    $ tox -e py26-django1.4.X-djangocelery2.5.X-celery2.5.X
+    $ tox -e py27-django1.8.X-djangocelery3.1.X-celery3.1.X
 
 Our test suite currently only tests usage with Django,
 which is definitely a [bug](https://github.com/PolicyStat/jobtastic/issues/15).
@@ -488,7 +488,7 @@ Yes. Increasingly so.
 ## Project Status
 
 Jobtastic is currently known to work
-with Django 1.3-1.5 and Celery 2.5-3.0.
+with Django 1.6+ and Celery 3.1.X
 The goal is to support those versions and newer.
 Please file issues if there are problems
 with newer versions of Django/Celery.

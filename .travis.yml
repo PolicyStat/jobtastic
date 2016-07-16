@@ -2,36 +2,17 @@ language: python
 sudo: false
 python: 3.5
 env:
-  - TOX_ENV=py26-django1.4.X-djangocelery2.5.X-celery2.5.X
-  - TOX_ENV=py27-django1.4.X-djangocelery2.5.X-celery2.5.X
-  - TOX_ENV=py26-django1.4.X-djangocelery3.0.X
-  - TOX_ENV=py26-django1.4.X-djangocelery3.1.X
-  - TOX_ENV=py26-django1.6.X-djangocelery3.0.X
-  - TOX_ENV=py26-django1.6.X-djangocelery3.1.X
-  - TOX_ENV=py27-django1.4.X-djangocelery3.0.X
-  - TOX_ENV=py27-django1.4.X-djangocelery3.1.X
-  - TOX_ENV=py27-django1.6.X-djangocelery3.0.X
   - TOX_ENV=py27-django1.6.X-djangocelery3.1.X
-  - TOX_ENV=py27-django1.7.X-djangocelery3.0.X
   - TOX_ENV=py27-django1.7.X-djangocelery3.1.X
   - TOX_ENV=py27-django1.8.X-djangocelery3.1.X
-  - TOX_ENV=py34-django1.7.X-djangocelery3.1.X
-  - TOX_ENV=py34-django1.8.X-djangocelery3.1.X
   - TOX_ENV=py27-django1.9.X-djangocelery3.1.X
-  - TOX_ENV=py34-django1.9.X-djangocelery3.1.X
-  - TOX_ENV=py26-django1.4.X-celery3.1.X
-  - TOX_ENV=py26-django1.6.X-celery3.1.X
-  - TOX_ENV=py27-django1.4.X-celery3.1.X
+  - TOX_ENV=py35-django1.8.X-djangocelery3.1.X
+  - TOX_ENV=py35-django1.9.X-djangocelery3.1.X
   - TOX_ENV=py27-django1.6.X-celery3.1.X
   - TOX_ENV=py27-django1.7.X-celery3.1.X
   - TOX_ENV=py27-django1.8.X-celery3.1.X
-  - TOX_ENV=py34-django1.7.X-celery3.1.X
-  - TOX_ENV=py34-django1.8.X-celery3.1.X
   - TOX_ENV=py27-django1.9.X-celery3.1.X
-  - TOX_ENV=py34-django1.9.X-celery3.1.X
-  - TOX_ENV=py35-django1.8.X-djangocelery3.1.X
   - TOX_ENV=py35-django1.8.X-celery3.1.X
-  - TOX_ENV=py35-django1.9.X-djangocelery3.1.X
   - TOX_ENV=py35-django1.9.X-celery3.1.X
   - TOX_ENV=flake8
 install: pip install tox

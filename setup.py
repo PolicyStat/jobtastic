@@ -121,23 +121,10 @@ class RunDjangoTests(Command):
             'testproj.settings',
         )
 
-        django_1_4 = False
-        try:
-            from django.core.management import execute_manager as run_command
-            django_1_4 = True
-        except ImportError:
-            # execute_manager was renamed in Django 1.6
-            from django.core.management import (
-                execute_from_command_line as run_command,
-            )
+        from django.core.management import execute_from_command_line
 
         modified_args = [__file__, 'test'] + self.extra_args
-        if django_1_4:
-            settings_file = os.environ['DJANGO_SETTINGS_MODULE']
-            settings_mod = __import__(settings_file, {}, {}, [''])
-            run_command(settings_mod, argv=modified_args)
-        else:
-            run_command(modified_args)
+        execute_from_command_line(modified_args)
 
     def initialize_options(self):
         pass

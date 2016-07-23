@@ -32,7 +32,9 @@ try:
     # For now, let's just say that if Django exists, we should use it.
     # Otherwise, try Flask. This definitely needs an actual configuration
     # variable so folks can make an explicit decision.
-    from django.core.cache import cache
+    from django.core.cache import get_cache
+    from django.conf import settings
+    cache = get_cache(getattr(settings, 'JOBTASTIC_CACHE_BACKEND_NAME', 'default'))
     HAS_DJANGO = True
 except ImportError:
     try:

@@ -266,6 +266,9 @@ By default, it logs the following via standard Celery logging:
  * The memory ending value
  * The task's kwargs
 
+You then grep for `Jobtastic:memleak memleak_detected` in your logs
+to identify offending tasks.
+
 If you'd like to customize this behavior,
 you can override the `warn_of_memory_leak` method in your own `Task`.
 

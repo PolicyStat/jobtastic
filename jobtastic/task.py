@@ -230,7 +230,7 @@ class JobtasticTask(Task):
         cache_key = self._get_cache_key(**kwargs)
 
         # Check for an already-computed and cached result
-        task_id = cache.get(cache_key)  # Check for the cached result
+        task_id = self._get_cache_value(key=cache_key)
         if task_id:
             # We've already built this result, just latch on to the task that
             # did the work
@@ -239,7 +239,7 @@ class JobtasticTask(Task):
             return self.AsyncResult(task_id)
 
         # Check for an in-progress equivalent task to avoid duplicating work
-        task_id = cache.get('herd:%s' % cache_key)
+        task_id = self._get_cache_value(key=cache_key, prefix='herd')
         if task_id:
             logging.info('Found existing in-progress task: %s', task_id)
             return self.AsyncResult(task_id)
@@ -447,6 +447,20 @@ class JobtasticTask(Task):
         else:
             cache_prefix = '%s.%s' % (self.__module__, self.__name__)
         return '%s:%s' % (cache_prefix, m.hexdigest())
+
+    @classmethod
+    def _get_cache_value(self, key, prefix=None):
+        """
+        Wrapper around ``cache.get()``.
+        Use this if you want to bust cache in some scenarios.
+        """
+        if prefix is not None:
+            key = "{prefix}:{key}".format(
+                prefix=prefix,
+                key=key,
+            )
+
+        return cache.get(key)
 
     def _get_memory_usage(self):
         current_process = psutil.Process(os.getpid())

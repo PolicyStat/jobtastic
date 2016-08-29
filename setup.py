@@ -11,7 +11,7 @@ long_description = codecs.open("README.md", "r", "utf-8").read()
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
     'Intended Audience :: Developers',
-    'License :: OSI Approved :: BSD License',
+    'License :: OSI Approved :: MIT License',
     'Topic :: System :: Distributed Computing',
     'Topic :: Software Development :: Object Brokering',
     'Programming Language :: Python',

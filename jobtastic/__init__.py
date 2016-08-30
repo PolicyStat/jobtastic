@@ -14,4 +14,9 @@ __all__ = (
 
 # -eof meta-
 
-from jobtastic.task import JobtasticTask  # NOQA
+# Reserved for default settings
+# works on Ubuntu after ~$ sudo apt-get install libmemcached-dev
+DEFAULT_RESULT_BACKEND = 'cache'
+DEFAULT_CACHE_BACKEND = 'memcached://127.0.0.1:11211/'
+
+from .task import JobtasticTask  # NOQA

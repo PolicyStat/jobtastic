@@ -574,16 +574,32 @@ with newer versions of Django/Celery.</p>
 <h3>
 <a id="a-note-on-usage-with-flask" class="anchor" href="#a-note-on-usage-with-flask" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>A note on usage with Flask</h3>
 
-<p>If you're using Flask instead of Django,
+<p>Previously,
+if you were using Flask instead of Django,
 then the only currently-supported way to work with Jobtastic
-is with Memcached as your <code>CELERY_RESULT_BACKEND</code>.
-A more generally-pythonic way of choosing/plugging cache backends
-is definitely a goal,
-though,
-and pull requests
-(see <a href="https://github.com/PolicyStat/jobtastic/issues/8">Issue 8</a> )
-or suggestions are very welcome.
-We'd also love some Flask-specific tests!</p>
+was with Memcached as your <code>CELERY_RESULT_BACKEND</code>.</p>
+
+<p>Thanks to <a href="https://github.com/rhunwicks" class="user-mention">@rhunwicks</a> this is no longer the case!</p>
+
+<p>A cache is now selected with the following priority:</p>
+
+<ul>
+<li>If the Celery appconfig has a <code>JOBTASTIC_CACHE</code> setting and it is a valid cache, use it</li>
+<li>If Django is installed, then:
+
+<ul>
+<li>If the setting is a valid Django cache entry, then use that.</li>
+<li>If the setting is empty use the default cache</li>
+</ul>
+</li>
+<li>If Werkzeug is installed, then:
+
+<ul>
+<li>If the setting is a valid Celery Memcache or Redis Backend, then use that.</li>
+<li>If the setting is empty and the default Celery Result Backend is Memcache or Redis, then use that</li>
+</ul>
+</li>
+</ul>
 
 <h2>
 <a id="non-affiliation" class="anchor" href="#non-affiliation" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Non-affiliation</h2>

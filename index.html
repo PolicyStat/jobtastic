@@ -93,11 +93,11 @@ It's great for:</p>
 <ol>
 <li>
 <p>Install gcc and the python C headers
-so that you can build <a href="http://psutil.googlecode.com/hg/INSTALL">psutil</a>.</p>
+so that you can build <a href="https://github.com/giampaolo/psutil/blob/master/INSTALL.rst">psutil</a>.</p>
 
 <p>On Ubuntu, that means running:</p>
 
-<p><code>$ sudo apt-get install build-essential python-dev</code></p>
+<p><code>$ sudo apt-get install build-essential python-dev python2.7-dev python3.5-dev rabbitmq-server</code></p>
 
 <p>On OS X, you'll need to run the "XcodeTools" installer.</p>
 </li>
@@ -292,7 +292,7 @@ should try to just re-use the cached result.
 The default is -1,
 meaning don't do any caching.
 Remember,
-<code>JobtasticTask</code> uses your <code>signficant_kwargs</code> to determine what is identical.</p>
+<code>JobtasticTask</code> uses your <code>significant_kwargs</code> to determine what is identical.</p>
 
 <h4>
 <a id="cache_prefix" class="anchor" href="#cache_prefix" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>cache_prefix</h4>
@@ -325,6 +325,9 @@ By default, it logs the following via standard Celery logging:</p>
 <li>The memory ending value</li>
 <li>The task's kwargs</li>
 </ul>
+
+<p>You then grep for <code>Jobtastic:memleak memleak_detected</code> in your logs
+to identify offending tasks.</p>
 
 <p>If you'd like to customize this behavior,
 you can override the <code>warn_of_memory_leak</code> method in your own <code>Task</code>.</p>
@@ -407,7 +410,7 @@ and do something a little more production-friendly.</p>
 <p>Note: One very important caveat with <code>JobtasticTask</code> is that
 all of your arguments must be keyword arguments.</p>
 
-<p>Note: This is a limitation of the current <code>signficant_kwargs</code> implementation,
+<p>Note: This is a limitation of the current <code>significant_kwargs</code> implementation,
 and totally fixable if someone wants to submit a pull request.</p>
 
 <h3>
@@ -518,21 +521,25 @@ but if it persists, you'll want to give your user feedback.</p>
 <h2>
 <a id="running-the-test-suite" class="anchor" href="#running-the-test-suite" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Running The Test Suite</h2>
 
-<p>You can run Jobtastic's test suite yourself via:</p>
+<p>We use <a href="https://tox.readthedocs.org/en/latest/">tox</a>
+to run our tests against various combinations
+of python/Django/Celery.
+We only officially support
+the combinations listed in our <code>.travis.yml</code> file,
+but we're working on
+(<a href="https://github.com/PolicyStat/jobtastic/issues/33">Issue 33</a>)
+supporting everything defined in <code>tox.ini</code>.
+Until then,
+you can run tests against supported combos with:</p>
 
-<pre><code>$ python setup.py test
+<pre><code>$ pip install tox
+$ tox -e py27-django1.8.X-djangocelery3.1.X-celery3.1.X
 </code></pre>
 
 <p>Our test suite currently only tests usage with Django,
 which is definitely a <a href="https://github.com/PolicyStat/jobtastic/issues/15">bug</a>.
 Especially if you use Jobtastic with Flask,
 we would love a pull request.</p>
-
-<p>You can also run tests
-across all of our supported python/Django/Celery versions via Tox:</p>
-
-<pre><code>$ tox
-</code></pre>
 
 <h2>
 <a id="dynamic-time-estimates-via-jobtasticmixins" class="anchor" href="#dynamic-time-estimates-via-jobtasticmixins" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Dynamic Time Estimates via JobtasticMixins</h2>
@@ -559,7 +566,7 @@ on github.</p>
 <a id="project-status" class="anchor" href="#project-status" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Project Status</h2>
 
 <p>Jobtastic is currently known to work
-with Django 1.3-1.5 and Celery 2.5-3.0.
+with Django 1.6+ and Celery 3.1.X
 The goal is to support those versions and newer.
 Please file issues if there are problems
 with newer versions of Django/Celery.</p>

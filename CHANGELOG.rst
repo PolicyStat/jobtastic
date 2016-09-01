@@ -1,6 +1,16 @@
 Changelog
 =========
 
+1.0.0
+-----
+
+* Dropped support for Django prior to 1.6
+* Dropped support for Celery prior to 3.1
+* Dropped support for Python 2.6
+* Dropped support for Python < 3.5  - thanks @midnightlynx for 3.4/3.5 support
+* Support for pluggable caches - thanks @rhunwicks
+* Fixed `setup.py` license to match MIT license in repo - thanks @sodre
+
 0.3.1
 -----
 

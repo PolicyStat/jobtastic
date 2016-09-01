@@ -1,8 +1,8 @@
 Changelog
 =========
 
-1.0.0
------
+1.0.0a1
+-------
 
 * Dropped support for Django prior to 1.6
 * Dropped support for Celery prior to 3.1

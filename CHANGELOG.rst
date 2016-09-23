@@ -1,6 +1,13 @@
 Changelog
 =========
 
+dev
+---
+
+* Added ``async_or_eager`` and ``async_or_run`` methods
+  so that you can do things like modifying the ``queue`` or ``routing_key`` with Jobtastic.
+  Thanks to @thenewguy for the PR and months of persistence!
+
 1.0.0a1
 -------
 

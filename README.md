@@ -349,16 +349,6 @@ all of your arguments must be keyword arguments.
 Note: This is a limitation of the current `significant_kwargs` implementation,
 and totally fixable if someone wants to submit a pull request.
 
-### async_or_eager
-
-This is a version of `delay_or_eager()` that exposes the calling signature
-of `apply_async()`.
-
-### async_or_fail
-
-This is a version of `delay_or_fail()` that exposes the calling signature
-of `apply_async()`.
-
 ### delay_or_eager
 
 If your broker is behaving itself,
@@ -373,6 +363,11 @@ If you have a task that realistically only takes a few seconds to run,
 this might be better than giving yours users an error message.
 
 This method uses `async_or_eager()` under the hood.
+
+### async_or_eager
+
+This is a version of `delay_or_eager()` that exposes the calling signature
+of `apply_async()`.
 
 ### delay_or_fail
 
@@ -391,6 +386,11 @@ you're probably better off using this than `delay_or_eager`
 because you don't want to make a resource problem worse.
 
 This method uses `async_or_fail()` under the hood.
+
+### async_or_fail
+
+This is a version of `delay_or_fail()` that exposes the calling signature
+of `apply_async()`.
 
 ## Client Side Handling
 

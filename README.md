@@ -364,11 +364,6 @@ this might be better than giving yours users an error message.
 
 This method uses `async_or_eager()` under the hood.
 
-### async_or_eager
-
-This is a version of `delay_or_eager()` that exposes the calling signature
-of `apply_async()`.
-
 ### delay_or_fail
 
 Like `delay_or_eager`,
@@ -386,6 +381,11 @@ you're probably better off using this than `delay_or_eager`
 because you don't want to make a resource problem worse.
 
 This method uses `async_or_fail()` under the hood.
+
+### async_or_eager
+
+This is a version of `delay_or_eager()` that exposes the calling signature
+of `apply_async()`.
 
 ### async_or_fail
 

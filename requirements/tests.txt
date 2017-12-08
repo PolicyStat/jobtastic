@@ -1,4 +1,4 @@
-django-nose==1.4.3  # 1.4.4 drops django <1.8 support
+django-nose==1.4.5  # 1.4.4 drops django <1.8 support
 unittest2
 mock
 django-picklefield==0.3.1

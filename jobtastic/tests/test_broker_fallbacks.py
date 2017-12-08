@@ -80,7 +80,7 @@ class BrokenBrokerTestCase(TestCase):
         # 'unresponsive'
         # We need to make this modification in 3 places because of version
         # backwards compatibility
-        self._set_broker_host('foo')
+        self._set_broker_host('amqp://')
         self.app.conf['CELERY_TASK_PUBLISH_RETRY'] = False
 
         self.app._pool = None

@@ -7,6 +7,7 @@ from django.test import TestCase
 
 from jobtastic import JobtasticTask
 from jobtastic.states import PROGRESS
+from jobtastic.tests import allow_checking_status_for_eager
 
 
 class ProgressTask(JobtasticTask):
@@ -34,7 +35,8 @@ def task_status_is_progress(self, **kwargs):
     task_id = self.request.id
     meta = BaseAsyncResult(task_id)
 
-    assert meta.status == PROGRESS
+    with allow_checking_status_for_eager():
+        assert meta.status == PROGRESS
 
 
 class ProgressTestCase(TestCase):

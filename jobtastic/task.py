@@ -160,7 +160,15 @@ class JobtasticTask(Task):
             # Celery 2.5 uses `broker_connection` instead
             dummy_conn = self.app.broker_connection()
 
-        return dummy_conn.connection_errors + dummy_conn.channel_errors
+        possible_broker_errors = (
+            dummy_conn.connection_errors + dummy_conn.channel_errors
+        )
+        try:
+            from kombu.exceptions import OperationalError
+            possible_broker_errors += (OperationalError,)
+        except ImportError:
+            pass
+        return possible_broker_errors
 
     @classmethod
     def simulate_async_error(self, exception):

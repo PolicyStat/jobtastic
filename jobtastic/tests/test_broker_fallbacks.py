@@ -5,6 +5,7 @@ import mock
 
 
 from celery import states
+from celery._state import get_current_app
 # eager_tasks was removed in celery 3.1
 from jobtastic import JobtasticTask
 from django.test import TestCase
@@ -70,8 +71,6 @@ class BrokenBrokerTestCase(TestCase):
         self.app.conf['BROKER_READ_URL'] = new_value
 
     def setUp(self):
-        # lowercase on purpose. AppCase calls `self.setup`
-        from celery._state import get_current_app
         self.app = get_current_app()
 
         self.old_broker_host = self.app.conf.BROKER_HOST or ''

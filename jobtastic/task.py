@@ -167,8 +167,8 @@ class JobtasticTask(Task):
             from kombu.exceptions import OperationalError
             # In celery 4.x when a broker is not connected it throws an
             # OperationalError from kombu. It should also be noted that the
-            # newest version of kombu actually hangs forever. So we need to peg
-            # versions of kombu until that gets fixed.
+            # newest version of kombu (4.1.0) actually hangs forever. So we
+            # need to peg versions of kombu until that gets fixed.
             possible_broker_errors += (OperationalError,)
         except ImportError:
             pass

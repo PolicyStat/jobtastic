@@ -16,10 +16,10 @@ from hashlib import md5
 import psutil
 
 from billiard.einfo import ExceptionInfo
-try:  # Celery 3
-    from celery.five import class_property
-except ImportError:  # Celery 4
+try:  # Celery 4
     from celery.local import class_property
+except ImportError:  # Celery 3
+    from celery.five import class_property
 from celery.states import PENDING, SUCCESS
 from celery.task import Task
 from celery.utils import gen_unique_id

@@ -15,8 +15,11 @@ from hashlib import md5
 
 import psutil
 
-from celery.datastructures import ExceptionInfo
-from celery.five import class_property
+from billiard.einfo import ExceptionInfo
+try:  # Celery 4
+    from celery.local import class_property
+except ImportError:  # Celery 3
+    from celery.five import class_property
 from celery.states import PENDING, SUCCESS
 from celery.task import Task
 from celery.utils import gen_unique_id
@@ -157,7 +160,19 @@ class JobtasticTask(Task):
             # Celery 2.5 uses `broker_connection` instead
             dummy_conn = self.app.broker_connection()
 
-        return dummy_conn.connection_errors + dummy_conn.channel_errors
+        possible_broker_errors = (
+            dummy_conn.connection_errors + dummy_conn.channel_errors
+        )
+        try:
+            from kombu.exceptions import OperationalError
+            # In celery 4.x when a broker is not connected it throws an
+            # OperationalError from kombu. It should also be noted that the
+            # newest version of kombu (4.1.0) actually hangs forever. So we
+            # need to peg versions of kombu until that gets fixed.
+            possible_broker_errors += (OperationalError,)
+        except ImportError:
+            pass
+        return possible_broker_errors
 
     @classmethod
     def simulate_async_error(self, exception):

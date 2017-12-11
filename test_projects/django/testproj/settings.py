@@ -56,7 +56,7 @@ NOSE_ARGS = [
     os.path.join(here, os.pardir, os.pardir, os.pardir, 'jobtastic', 'tests'),
     os.environ.get("NOSE_VERBOSE") and "--verbose" or "",
 ]
-TEST_RUNNER = 'django_nose.run_tests'
+TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
 
 # Celery Configuration
 BROKER_URL = 'memory://'

@@ -510,6 +510,16 @@ The goal is to support those versions and newer.
 Please file issues if there are problems
 with newer versions of Django/Celery.
 
+### Gotchas
+
+At this time of this writing,
+the latest supported version of kombu
+with celery 4.x is
+4.0.2.
+This is due to an issue with invalid
+or temporarily broken
+brokers with the newer versions of kombu.
+
 ### A note on usage with Flask
 
 Previously,

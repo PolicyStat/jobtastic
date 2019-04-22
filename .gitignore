@@ -22,3 +22,6 @@ pip-log.txt
 
 #Translations
 *.mo
+
+# popular ide
+.idea

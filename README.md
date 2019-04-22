@@ -520,6 +520,8 @@ This is due to an issue with invalid
 or temporarily broken
 brokers with the newer versions of kombu.
 
+Also, `RabbitMQ` should be running in the background while running tests.
+
 ### A note on usage with Flask
 
 Previously,

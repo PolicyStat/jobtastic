@@ -438,7 +438,7 @@ class JobtasticTask(Task):
             key, to_str = significant_kwarg
             try:
                 m.update(to_str(kwargs[key]))
-            except TypeError:
+            except (TypeError, UnicodeEncodeError):
                 # Python 3.x strings aren't accepted by hash.update().
                 # String should be byte-encoded first.
                 m.update(to_str(kwargs[key]).encode('utf-8'))

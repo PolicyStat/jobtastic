@@ -5,6 +5,13 @@ dev
 ---
 * N/A
 
+2.1.0
+-------
+* Tiny changes for better ``unicode`` type support.
+* Dropping obsolete Celery3.1x from test cicle. It works for current release,
+  but we wouldn't warranty it in the future.
+
+
 2.0.0
 -------
 

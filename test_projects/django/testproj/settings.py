@@ -85,7 +85,7 @@ else:
     CELERY_RESULT_BACKEND = 'cache+memory://'
     celery_app = Celery(
         'testproj',
-        broker='amqp://guest:guest@localhost/',
+        broker='amqp://guest:guest@localhost//',
     )
     celery_app.config_from_object('django.conf:settings')
     celery_app.autodiscover_tasks(lambda: INSTALLED_APPS)

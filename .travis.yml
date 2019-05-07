@@ -1,5 +1,5 @@
 language: python
-sudo: false
+sudo: required
 dist: xenial
 services: rabbitmq
 python: 3.7
@@ -9,3 +9,8 @@ env:
   - TOX_ENV=flake8
 install: pip install tox
 script: tox -e $TOX_ENV
+
+before_install:
+  - sudo apt install rabbitmq-server -y
+  - sudo systemctl enable rabbitmq-server
+  - sudo systemctl start rabbitmq-server

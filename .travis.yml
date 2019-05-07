@@ -3,6 +3,7 @@ sudo: required
 dist: xenial
 services: rabbitmq
 python: 3.7
+os: linux
 env:
   - TOX_ENV=py27-django1.11.X-celery4.1-kombu4.0.2
   - TOX_ENV=py37-django2.2-celery4

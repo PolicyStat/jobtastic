@@ -1,8 +1,9 @@
 language: python
 sudo: false
-python: 3.5
+dist: xenial
+python: 3.7
 env:
-  - TOX_ENV=py27-django1.11.X-celery4.1.X-kombu4.0.2
+  - TOX_ENV=py27-django1.11.X-celery4.1-kombu4.0.2
   - TOX_ENV=py37-django2.2-celery4
   - TOX_ENV=flake8
 install: pip install tox

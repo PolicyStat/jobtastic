@@ -12,7 +12,7 @@ install: pip install tox
 script: tox -e $TOX_ENV
 
 before_install:
-  - sudo apt install erlang-odbc erlang-nox -y
+  - sudo apt install libodbc1 erlang-odbc erlang-nox -y
   - sudo apt update
   - sudo apt install rabbitmq-server -y
   - sudo systemctl enable rabbitmq-server

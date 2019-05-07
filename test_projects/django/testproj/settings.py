@@ -83,9 +83,6 @@ elif VERSION[0] == 3 and VERSION[1] == 0:
 else:
     from celery import Celery
     CELERY_RESULT_BACKEND = 'cache+memory://'
-    celery_app = Celery(
-        'testproj',
-        broker='amqp://guest:guest@127.0.0.1:5672/',
-    )
+    celery_app = Celery('testproj')
     celery_app.config_from_object('django.conf:settings')
     celery_app.autodiscover_tasks(lambda: INSTALLED_APPS)

@@ -1,6 +1,7 @@
 language: python
 sudo: false
 dist: xenial
+services: rabbitmq
 python: 3.7
 env:
   - TOX_ENV=py27-django1.11.X-celery4.1-kombu4.0.2

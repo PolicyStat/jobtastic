@@ -70,11 +70,11 @@ BROKER_CONNECTION_MAX_RETRIES = 1
 BROKER_POOL_LIMIT = 0
 CELERY_RESULT_BACKEND = 'cache'
 CELERY_SEND_TASK_ERROR_EMAILS = False
-from celery import VERSION
+from celery import VERSION  # noqa
 if VERSION[0] < 3:
     # Use Django's syntax instead of Celery's, which would be:
     CELERY_CACHE_BACKEND = 'locmem://'
-    import djcelery
+    import djcelery  # noqa
     djcelery.setup_loader()
 elif VERSION[0] == 3 and VERSION[1] == 0:
     CELERY_CACHE_BACKEND = 'memory'

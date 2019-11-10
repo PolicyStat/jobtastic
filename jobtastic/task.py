@@ -220,7 +220,8 @@ class JobtasticTask(Task):
             return self.AsyncResult(task_id)
 
         if not self.always_start_new_herd:
-            # Check for an in-progress equivalent task to avoid duplicating work
+            # Check for an in-progress equivalent task to avoid
+            # duplicating work
             task_id = self.cache.get('herd:%s' % cache_key)
             if task_id:
                 logging.info('Found existing in-progress task: %s', task_id)

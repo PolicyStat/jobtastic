@@ -1,38 +1,20 @@
 language: python
-sudo: false
-python: 3.5
+sudo: required
+dist: xenial
+python: 3.7
+os: linux
 env:
-  - TOX_ENV=py26-django1.4.X-djangocelery2.5.X-celery2.5.X
-  - TOX_ENV=py27-django1.4.X-djangocelery2.5.X-celery2.5.X
-  - TOX_ENV=py26-django1.4.X-djangocelery3.0.X
-  - TOX_ENV=py26-django1.4.X-djangocelery3.1.X
-  - TOX_ENV=py26-django1.6.X-djangocelery3.0.X
-  - TOX_ENV=py26-django1.6.X-djangocelery3.1.X
-  - TOX_ENV=py27-django1.4.X-djangocelery3.0.X
-  - TOX_ENV=py27-django1.4.X-djangocelery3.1.X
-  - TOX_ENV=py27-django1.6.X-djangocelery3.0.X
-  - TOX_ENV=py27-django1.6.X-djangocelery3.1.X
-  - TOX_ENV=py27-django1.7.X-djangocelery3.0.X
-  - TOX_ENV=py27-django1.7.X-djangocelery3.1.X
-  - TOX_ENV=py27-django1.8.X-djangocelery3.1.X
-  - TOX_ENV=py34-django1.7.X-djangocelery3.1.X
-  - TOX_ENV=py34-django1.8.X-djangocelery3.1.X
-  - TOX_ENV=py27-django1.9.X-djangocelery3.1.X
-  - TOX_ENV=py34-django1.9.X-djangocelery3.1.X
-  - TOX_ENV=py26-django1.4.X-celery3.1.X
-  - TOX_ENV=py26-django1.6.X-celery3.1.X
-  - TOX_ENV=py27-django1.4.X-celery3.1.X
-  - TOX_ENV=py27-django1.6.X-celery3.1.X
-  - TOX_ENV=py27-django1.7.X-celery3.1.X
-  - TOX_ENV=py27-django1.8.X-celery3.1.X
-  - TOX_ENV=py34-django1.7.X-celery3.1.X
-  - TOX_ENV=py34-django1.8.X-celery3.1.X
-  - TOX_ENV=py27-django1.9.X-celery3.1.X
-  - TOX_ENV=py34-django1.9.X-celery3.1.X
-  - TOX_ENV=py35-django1.8.X-djangocelery3.1.X
-  - TOX_ENV=py35-django1.8.X-celery3.1.X
-  - TOX_ENV=py35-django1.9.X-djangocelery3.1.X
-  - TOX_ENV=py35-django1.9.X-celery3.1.X
+  - TOX_ENV=py27-django1.11.X-celery4.1-kombu4.0.2
+  - TOX_ENV=py37-django2.2-celery4
   - TOX_ENV=flake8
 install: pip install tox
 script: tox -e $TOX_ENV
+
+# All of this is lifted directly from celery's travis config.
+before_install:
+  - sudo apt-key adv --keyserver "hkps.pool.sks-keyservers.net" --recv-keys "0x6B73A36E6026DFCA"
+  - wget -O - "https://github.com/rabbitmq/signing-keys/releases/download/2.0/rabbitmq-release-signing-key.asc" | sudo apt-key add -
+  - sudo apt update
+  - sudo apt install rabbitmq-server -y
+  - sudo systemctl enable rabbitmq-server
+  - sudo systemctl start rabbitmq-server

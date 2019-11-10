@@ -44,7 +44,7 @@ You could write all of the stuff yourself, but why?
 
   On Ubuntu, that means running:
 
-  `$ sudo apt-get install build-essential python-dev python2.6-dev python2.7-dev rabbitmq-server`
+  `$ sudo apt-get install build-essential python-dev python2.7-dev python3.5-dev rabbitmq-server`
 
   On OS X, you'll need to run the "XcodeTools" installer.
 
@@ -266,6 +266,9 @@ By default, it logs the following via standard Celery logging:
  * The memory ending value
  * The task's kwargs
 
+You then grep for `Jobtastic:memleak memleak_detected` in your logs
+to identify offending tasks.
+
 If you'd like to customize this behavior,
 you can override the `warn_of_memory_leak` method in your own `Task`.
 
@@ -362,6 +365,8 @@ which behaves just like the `AsyncResult` you were expecting.
 If you have a task that realistically only takes a few seconds to run,
 this might be better than giving yours users an error message.
 
+This method uses `async_or_eager()` under the hood.
+
 ### delay_or_fail
 
 Like `delay_or_eager`,
@@ -377,6 +382,18 @@ For tasks that might take a while
 or consume a lot of RAM,
 you're probably better off using this than `delay_or_eager`
 because you don't want to make a resource problem worse.
+
+This method uses `async_or_fail()` under the hood.
+
+### async_or_eager
+
+This is a version of `delay_or_eager()` that exposes the calling signature
+of `apply_async()`.
+
+### async_or_fail
+
+This is a version of `delay_or_fail()` that exposes the calling signature
+of `apply_async()`.
 
 ## Client Side Handling
 
@@ -459,7 +476,7 @@ Until then,
 you can run tests against supported combos with:
 
     $ pip install tox
-    $ tox -e py26-django1.4.X-djangocelery2.5.X-celery2.5.X
+    $ tox -e py27-django1.8.X-djangocelery3.1.X-celery3.1.X
 
 Our test suite currently only tests usage with Django,
 which is definitely a [bug](https://github.com/PolicyStat/jobtastic/issues/15).
@@ -488,23 +505,41 @@ Yes. Increasingly so.
 ## Project Status
 
 Jobtastic is currently known to work
-with Django 1.3-1.5 and Celery 2.5-3.0.
+with Django 1.6+ and Celery 3.1.X
 The goal is to support those versions and newer.
 Please file issues if there are problems
 with newer versions of Django/Celery.
 
+### Gotchas
+
+At this time of this writing,
+the latest supported version of kombu
+with celery 4.x is
+4.0.2.
+This is due to an issue with invalid
+or temporarily broken
+brokers with the newer versions of kombu.
+
+Also, `RabbitMQ` should be running in the background while running tests.
+
 ### A note on usage with Flask
 
-If you're using Flask instead of Django,
+Previously,
+if you were using Flask instead of Django,
 then the only currently-supported way to work with Jobtastic
-is with Memcached as your `CELERY_RESULT_BACKEND`.
-A more generally-pythonic way of choosing/plugging cache backends
-is definitely a goal,
-though,
-and pull requests
-(see [Issue 8](https://github.com/PolicyStat/jobtastic/issues/8) )
-or suggestions are very welcome.
-We'd also love some Flask-specific tests!
+was with Memcached as your `CELERY_RESULT_BACKEND`.
+
+Thanks to @rhunwicks this is no longer the case!
+
+A cache is now selected with the following priority:
+
+* If the Celery appconfig has a `JOBTASTIC_CACHE` setting and it is a valid cache, use it
+* If Django is installed, then:
+    - If the setting is a valid Django cache entry, then use that.
+    - If the setting is empty use the default cache
+* If Werkzeug is installed, then:
+    - If the setting is a valid Celery Memcache or Redis Backend, then use that.
+    - If the setting is empty and the default Celery Result Backend is Memcache or Redis, then use that
 
 ## Non-affiliation
 

@@ -11,79 +11,26 @@ import time
 import os
 import sys
 import warnings
-from contextlib import contextmanager
 from hashlib import md5
 
 import psutil
 
-from celery.datastructures import ExceptionInfo
+from billiard.einfo import ExceptionInfo
+try:  # Celery 4
+    from celery.local import class_property
+except ImportError:  # Celery 3
+    from celery.five import class_property
 from celery.states import PENDING, SUCCESS
 from celery.task import Task
 from celery.utils import gen_unique_id
+from jobtastic.cache import get_cache
+from jobtastic.states import PROGRESS  # NOQA
 
 get_task_logger = None
 try:
     from celery.utils.log import get_task_logger
 except ImportError:
     pass  # get_task_logger is new in Celery 3.X
-
-cache = None
-try:
-    # For now, let's just say that if Django exists, we should use it.
-    # Otherwise, try Flask. This definitely needs an actual configuration
-    # variable so folks can make an explicit decision.
-    from django.core.cache import cache
-    HAS_DJANGO = True
-except ImportError:
-    try:
-        # We should really have an explicitly-defined way of doing this, but
-        # for now, let's just use werkzeug Memcached if it exists
-        from werkzeug.contrib.cache import MemcachedCache
-
-        from celery import conf
-        if conf.CELERY_RESULT_BACKEND == 'cache':
-            uri_str = conf.CELERY_CACHE_BACKEND.strip('memcached://')
-            uris = uri_str.split(';')
-            cache = MemcachedCache(uris)
-            HAS_WERKZEUG = True
-    except ImportError:
-        pass
-
-if cache is None:
-    raise Exception(
-        "Jobtastic requires either Django or Flask + Memcached result backend")
-
-
-from jobtastic.states import PROGRESS  # NOQA
-
-
-@contextmanager
-def acquire_lock(lock_name):
-    """
-    A contextmanager to wait until an exclusive lock is available,
-    hold the lock and then release it when the code under context
-    is complete.
-
-    TODO: This code doesn't work like it should. It doesn't
-    wait indefinitely for the lock and in fact cycles through
-    very quickly.
-    """
-    for _ in range(10):
-        try:
-            value = cache.incr(lock_name)
-        except ValueError:
-            cache.set(lock_name, 0)
-            value = cache.incr(lock_name)
-        if value == 1:
-            break
-        else:
-            cache.decr(lock_name)
-    else:
-        yield
-        cache.set(lock_name, 0)
-        return
-    yield
-    cache.decr(lock_name)
 
 
 class JobtasticTask(Task):
@@ -136,17 +83,45 @@ class JobtasticTask(Task):
     """
     abstract = True
 
+    #: The shared cache used for locking and thundering herd protection
+    _cache = None
+
+    @classmethod
+    def async_or_eager(self, **options):
+        """
+        Attempt to call self.apply_async, or if that fails because of a problem
+        with the broker, run the task eagerly and return an EagerResult.
+        """
+        args = options.pop("args", None)
+        kwargs = options.pop("kwargs", None)
+        possible_broker_errors = self._get_possible_broker_errors_tuple()
+        try:
+            return self.apply_async(args, kwargs, **options)
+        except possible_broker_errors:
+            return self.apply(args, kwargs, **options)
+
+    @classmethod
+    def async_or_fail(self, **options):
+        """
+        Attempt to call self.apply_async, but if that fails with an exception,
+        we fake the task completion using the exception as the result. This
+        allows us to seamlessly handle errors on task creation the same way we
+        handle errors when a task runs, simplifying the user interface.
+        """
+        args = options.pop("args", None)
+        kwargs = options.pop("kwargs", None)
+        possible_broker_errors = self._get_possible_broker_errors_tuple()
+        try:
+            return self.apply_async(args, kwargs, **options)
+        except possible_broker_errors as e:
+            return self.simulate_async_error(e)
+
     @classmethod
     def delay_or_eager(self, *args, **kwargs):
         """
-        Attempt to call self.delay, or if that fails because of a problem with
-        the broker, run the task eagerly and return an EagerResult.
+        Wrap async_or_eager with a convenience signiture like delay
         """
-        possible_broker_errors = self._get_possible_broker_errors_tuple()
-        try:
-            return self.apply_async(args=args, kwargs=kwargs)
-        except possible_broker_errors:
-            return self.apply(args=args, kwargs=kwargs)
+        return self.async_or_eager(args=args, kwargs=kwargs)
 
     @classmethod
     def delay_or_run(self, *args, **kwargs):
@@ -173,16 +148,9 @@ class JobtasticTask(Task):
     @classmethod
     def delay_or_fail(self, *args, **kwargs):
         """
-        Attempt to call self.delay, but if that fails with an exception, we
-        fake the task completion using the exception as the result. This allows
-        us to seamlessly handle errors on task creation the same way we handle
-        errors when a task runs, simplifying the user interface.
+        Wrap async_or_fail with a convenience signiture like delay
         """
-        possible_broker_errors = self._get_possible_broker_errors_tuple()
-        try:
-            return self.apply_async(args=args, kwargs=kwargs)
-        except possible_broker_errors as e:
-            return self.simulate_async_error(e)
+        return self.async_or_fail(args=args, kwargs=kwargs)
 
     @classmethod
     def _get_possible_broker_errors_tuple(self):
@@ -192,7 +160,19 @@ class JobtasticTask(Task):
             # Celery 2.5 uses `broker_connection` instead
             dummy_conn = self.app.broker_connection()
 
-        return dummy_conn.connection_errors + dummy_conn.channel_errors
+        possible_broker_errors = (
+            dummy_conn.connection_errors + dummy_conn.channel_errors
+        )
+        try:
+            from kombu.exceptions import OperationalError
+            # In celery 4.x when a broker is not connected it throws an
+            # OperationalError from kombu. It should also be noted that the
+            # newest version of kombu (4.1.0) actually hangs forever. So we
+            # need to peg versions of kombu until that gets fixed.
+            possible_broker_errors += (OperationalError,)
+        except ImportError:
+            pass
+        return possible_broker_errors
 
     @classmethod
     def simulate_async_error(self, exception):
@@ -230,7 +210,7 @@ class JobtasticTask(Task):
         cache_key = self._get_cache_key(**kwargs)
 
         # Check for an already-computed and cached result
-        task_id = cache.get(cache_key)  # Check for the cached result
+        task_id = self.cache.get(cache_key)  # Check for the cached result
         if task_id:
             # We've already built this result, just latch on to the task that
             # did the work
@@ -239,7 +219,7 @@ class JobtasticTask(Task):
             return self.AsyncResult(task_id)
 
         # Check for an in-progress equivalent task to avoid duplicating work
-        task_id = cache.get('herd:%s' % cache_key)
+        task_id = self.cache.get('herd:%s' % cache_key)
         if task_id:
             logging.info('Found existing in-progress task: %s', task_id)
             return self.AsyncResult(task_id)
@@ -247,7 +227,7 @@ class JobtasticTask(Task):
         # It's not cached and it's not already running. Use an atomic lock to
         # start the task, ensuring there isn't a race condition that could
         # result in multiple identical tasks being fired at once.
-        with acquire_lock('lock:%s' % cache_key):
+        with self.cache.lock('lock:%s' % cache_key):
             task_meta = super(JobtasticTask, self).apply_async(
                 args,
                 kwargs,
@@ -255,7 +235,7 @@ class JobtasticTask(Task):
             )
             logging.info('Current status: %s', task_meta.status)
             if task_meta.status in (PROGRESS, PENDING):
-                cache.set(
+                self.cache.set(
                     'herd:%s' % cache_key,
                     task_meta.task_id,
                     timeout=self.herd_avoidance_timeout)
@@ -372,7 +352,7 @@ class JobtasticTask(Task):
             cache_duration = -1  # By default, don't cache
         if cache_duration >= 0:
             # If we're configured to cache this result, do so.
-            cache.set(self.cache_key, self.request.id, cache_duration)
+            self.cache.set(self.cache_key, self.request.id, cache_duration)
 
         # Now that the task is finished, we can stop all of the thundering herd
         # avoidance
@@ -419,7 +399,28 @@ class JobtasticTask(Task):
             self.update_state(task_id, SUCCESS, retval)
 
     def _break_thundering_herd_cache(self):
-        cache.delete('herd:%s' % self.cache_key)
+        self.cache.delete('herd:%s' % self.cache_key)
+
+    @classmethod
+    def _get_cache(self):
+        """
+        Return the cache to use for thundering herd protection, etc.
+        """
+        if not self._cache:
+            self._cache = get_cache(self.app)
+        return self._cache
+
+    @classmethod
+    def _set_cache(self, cache):
+        """
+        Set the Jobtastic Cache for the Task
+
+        The cache must support get/set (with timeout)/delete/lock (as a context
+        manager).
+        """
+        self._cache = cache
+
+    cache = class_property(_get_cache, _set_cache)
 
     @classmethod
     def _get_cache_key(self, **kwargs):
@@ -437,7 +438,7 @@ class JobtasticTask(Task):
             key, to_str = significant_kwarg
             try:
                 m.update(to_str(kwargs[key]))
-            except TypeError:
+            except (TypeError, UnicodeEncodeError):
                 # Python 3.x strings aren't accepted by hash.update().
                 # String should be byte-encoded first.
                 m.update(to_str(kwargs[key]).encode('utf-8'))

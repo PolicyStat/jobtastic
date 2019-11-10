@@ -1,6 +1,35 @@
 Changelog
 =========
 
+dev
+---
+* N/A
+
+2.1.0
+-------
+* Tiny changes for better ``unicode`` type support.
+* Dropping obsolete Celery3.1x from test cicle. It works for current release,
+  but we wouldn't warrant it in the future.
+
+
+2.0.0
+-------
+
+* Added ``async_or_eager`` and ``async_or_run`` methods
+  so that you can do things like modifying the ``queue`` or ``routing_key`` with Jobtastic.
+  Thanks to @thenewguy for the PR and months of persistence!
+* Added support for celery 4.
+
+1.0.0a1
+-------
+
+* Dropped support for Django prior to 1.6
+* Dropped support for Celery prior to 3.1
+* Dropped support for Python 2.6
+* Dropped support for Python < 3.5  - thanks @midnightlynx for 3.4/3.5 support
+* Support for pluggable caches - thanks @rhunwicks
+* Fixed `setup.py` license to match MIT license in repo - thanks @sodre
+
 0.3.1
 -----
 

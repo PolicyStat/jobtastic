@@ -82,6 +82,7 @@ class JobtasticTask(Task):
       front-end code so that users know what to expect.
     """
     abstract = True
+    always_start_new_herd = False
 
     #: The shared cache used for locking and thundering herd protection
     _cache = None
@@ -218,11 +219,12 @@ class JobtasticTask(Task):
                 'Found existing cached and completed task: %s', task_id)
             return self.AsyncResult(task_id)
 
-        # Check for an in-progress equivalent task to avoid duplicating work
-        task_id = self.cache.get('herd:%s' % cache_key)
-        if task_id:
-            logging.info('Found existing in-progress task: %s', task_id)
-            return self.AsyncResult(task_id)
+        if not self.always_start_new_herd:
+            # Check for an in-progress equivalent task to avoid duplicating work
+            task_id = self.cache.get('herd:%s' % cache_key)
+            if task_id:
+                logging.info('Found existing in-progress task: %s', task_id)
+                return self.AsyncResult(task_id)
 
         # It's not cached and it's not already running. Use an atomic lock to
         # start the task, ensuring there isn't a race condition that could

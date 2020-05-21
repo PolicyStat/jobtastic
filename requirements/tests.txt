@@ -3,4 +3,4 @@ unittest2
 mock
 django-picklefield
 six
-werkzeug
+cachelib

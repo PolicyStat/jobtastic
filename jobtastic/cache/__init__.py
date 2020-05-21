@@ -20,8 +20,8 @@ except ImportError:
     pass
 
 try:
-    from werkzeug.contrib.cache import MemcachedCache, RedisCache
-    CACHES.append('Werkzeug')
+    from cachelib import MemcachedCache, RedisCache
+    CACHES.append('cachelib')
 except ImportError:
     pass
 
@@ -34,7 +34,7 @@ def get_cache(app):
     Otherwise, if Django is installed, then:
         If the setting is a valid Django cache entry, then use that.
         If the setting is empty use the default cache
-    Otherwise, if Werkzeug is installed, then:
+    Otherwise, if cachelib is installed, then:
         If the setting is a valid Celery Memcache or Redis Backend, then use
             that.
         If the setting is empty and the default Celery Result Backend is
@@ -54,7 +54,7 @@ def get_cache(app):
         else:
             return WrappedCache(get_django_cache('default'))
 
-    if 'Werkzeug' in CACHES:
+    if 'cachelib' in CACHES:
         if jobtastic_cache_setting:
             backend, url = get_backend_by_url(jobtastic_cache_setting)
             backend = backend(app=app, url=url)

@@ -72,7 +72,7 @@ class WrappedCache(BaseCache):
                     # Possibly using old Django-Redis
                     lock = self.cache.client.lock
                 except AttributeError:
-                    # Possibly using Werkzeug + Redis
+                    # Possibly using cachelib + Redis
                     lock = self.cache._client.lock
             have_lock = False
             lock = lock(lock_name, timeout=timeout)

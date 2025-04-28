@@ -25,3 +25,5 @@ pip-log.txt
 
 # popular ide
 .idea
+
+.python-version

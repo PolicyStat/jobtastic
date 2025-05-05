@@ -7,7 +7,7 @@ from celery.backends.cache import DummyClient
 from django.conf import settings
 from django.test import TestCase
 from jobtastic.task import JobtasticTask
-from werkzeug.contrib.cache import MemcachedCache
+from cachelib import MemcachedCache
 try:
     from django.core.cache import caches
 except ImportError:
@@ -84,9 +84,9 @@ class DjangoSettingsTestCase(TestCase):
             self.assertTrue('herd:%s' % self.key in caches['shared'])
             self.assertTrue('herd:%s' % self.key not in caches['default'])
 
-    @mock.patch('jobtastic.cache.CACHES', ['Werkzeug'])
+    @mock.patch('jobtastic.cache.CACHES', ['cachelib'])
     @mock.patch.object(DummyClient, 'add', add, create=True)
-    def test_default_werkzeug_cache(self):
+    def test_default_cachelib_cache(self):
         with self.settings(CELERY_ALWAYS_EAGER=False):
             app = Celery()
             app.config_from_object(settings)

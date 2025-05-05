@@ -537,7 +537,7 @@ A cache is now selected with the following priority:
 * If Django is installed, then:
     - If the setting is a valid Django cache entry, then use that.
     - If the setting is empty use the default cache
-* If Werkzeug is installed, then:
+* If [cachelib](https://github.com/pallets/cachelib) is installed, then:
     - If the setting is a valid Celery Memcache or Redis Backend, then use that.
     - If the setting is empty and the default Celery Result Backend is Memcache or Redis, then use that
 

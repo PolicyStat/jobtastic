@@ -228,6 +228,11 @@ These let you tweak the default behavior.
 Most often, you'll just be setting the `cache_duration`
 to enable result caching.
 
+#### always_start_new_herd
+
+Skip herd avoidance check if True, but still trigger avoidance for other tasks.
+Defaults to False.
+
 #### cache_duration
 
 If you want your results cached,

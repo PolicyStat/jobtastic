@@ -1,5 +1,25 @@
 # Things to do in order to cut a new release
 
+## Private Celery 5.4 branch: do not publish
+
+The experimental `3.0.0+policystat.1` version is an internal compatibility
+candidate, not an upstream release. Do not follow the PyPI upload steps below
+for this branch.
+
+Before building a release wheel:
+
+1. Complete legacy-suite migration and validate Python 3.8 and 3.10 with
+   Celery 5.4.0 and Django 3.2.25.
+2. Validate real worker execution, Redis/cache behavior, concurrent locking,
+   retries, and broker failure handling.
+3. Coordinate PolicyStat's registered-instance callers and dependency bundle.
+   Never deploy this package independently into the Celery 4 stack.
+4. Build in the approved VM from an exact reviewed commit. Record the source
+   repository, full commit, package version, build command and tool versions,
+   wheel filename, SHA-256, tested combinations, and source PR.
+5. Increment the private version for every changed artifact. Do not rename a
+   wheel or patch distribution metadata to impersonate an unchanged release.
+
 ## Passing Tests
 
 Make sure that all of the tests on travis-ci have run and are passing.

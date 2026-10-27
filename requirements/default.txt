@@ -1,2 +1,2 @@
 psutil
-celery>=3.1,<5
+celery==5.4.0

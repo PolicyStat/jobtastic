@@ -1,3 +1,4 @@
+# coding: utf-8
 """
 Celery base task aimed at longish-running jobs that return a result.
 
@@ -7,30 +8,23 @@ reporting, error fallback and JSON encoding of results.
 from __future__ import division
 
 import logging
-import time
 import os
 import sys
+import time
 import warnings
 from hashlib import md5
 
 import psutil
 
 from billiard.einfo import ExceptionInfo
-try:  # Celery 4
-    from celery.local import class_property
-except ImportError:  # Celery 3
-    from celery.five import class_property
+from celery import Task
 from celery.states import PENDING, SUCCESS
-from celery.task import Task
-from celery.utils import gen_unique_id
+from celery.utils import uuid
+from celery.utils.log import get_task_logger
+from kombu.exceptions import OperationalError
+
 from jobtastic.cache import get_cache
 from jobtastic.states import PROGRESS  # NOQA
-
-get_task_logger = None
-try:
-    from celery.utils.log import get_task_logger
-except ImportError:
-    pass  # get_task_logger is new in Celery 3.X
 
 
 class JobtasticTask(Task):
@@ -86,7 +80,6 @@ class JobtasticTask(Task):
     #: The shared cache used for locking and thundering herd protection
     _cache = None
 
-    @classmethod
     def async_or_eager(self, **options):
         """
         Attempt to call self.apply_async, or if that fails because of a problem
@@ -100,7 +93,6 @@ class JobtasticTask(Task):
         except possible_broker_errors:
             return self.apply(args, kwargs, **options)
 
-    @classmethod
     def async_or_fail(self, **options):
         """
         Attempt to call self.apply_async, but if that fails with an exception,
@@ -116,14 +108,12 @@ class JobtasticTask(Task):
         except possible_broker_errors as e:
             return self.simulate_async_error(e)
 
-    @classmethod
     def delay_or_eager(self, *args, **kwargs):
         """
         Wrap async_or_eager with a convenience signiture like delay
         """
         return self.async_or_eager(args=args, kwargs=kwargs)
 
-    @classmethod
     def delay_or_run(self, *args, **kwargs):
         """
         Attempt to call self.delay, or if that fails, call self.run.
@@ -141,40 +131,24 @@ class JobtasticTask(Task):
             result = self.apply_async(args=args, kwargs=kwargs)
             required_fallback = False
         except possible_broker_errors:
-            result = self().run(*args, **kwargs)
+            result = self.run(*args, **kwargs)
             required_fallback = True
         return result, required_fallback
 
-    @classmethod
     def delay_or_fail(self, *args, **kwargs):
         """
         Wrap async_or_fail with a convenience signiture like delay
         """
         return self.async_or_fail(args=args, kwargs=kwargs)
 
-    @classmethod
     def _get_possible_broker_errors_tuple(self):
-        if hasattr(self.app, 'connection'):
-            dummy_conn = self.app.connection()
-        else:
-            # Celery 2.5 uses `broker_connection` instead
-            dummy_conn = self.app.broker_connection()
-
-        possible_broker_errors = (
-            dummy_conn.connection_errors + dummy_conn.channel_errors
+        dummy_conn = self.app.connection_for_write()
+        return (
+            dummy_conn.connection_errors
+            + dummy_conn.channel_errors
+            + (OperationalError,)
         )
-        try:
-            from kombu.exceptions import OperationalError
-            # In celery 4.x when a broker is not connected it throws an
-            # OperationalError from kombu. It should also be noted that the
-            # newest version of kombu (4.1.0) actually hangs forever. So we
-            # need to peg versions of kombu until that gets fixed.
-            possible_broker_errors += (OperationalError,)
-        except ImportError:
-            pass
-        return possible_broker_errors
 
-    @classmethod
     def simulate_async_error(self, exception):
         """
         Take this exception and store it as an error in the result backend.
@@ -183,7 +157,7 @@ class JobtasticTask(Task):
         error-handling that might retry a task or display a useful message to
         the user can also handle this error.
         """
-        task_id = gen_unique_id()
+        task_id = uuid()
         async_result = self.AsyncResult(task_id)
         einfo = ExceptionInfo(sys.exc_info())
 
@@ -195,8 +169,7 @@ class JobtasticTask(Task):
 
         return async_result
 
-    @classmethod
-    def apply_async(self, args, kwargs, **options):
+    def apply_async(self, args=None, kwargs=None, **options):
         """
         Put this task on the Celery queue as a singleton. Only one of this type
         of task with its distinguishing args/kwargs will be allowed on the
@@ -205,6 +178,8 @@ class JobtasticTask(Task):
         synchronizing the task uuid. Additionally, identical task calls will
         return those results for the next ``cache_duration`` seconds.
         """
+        args = args if args is not None else ()
+        kwargs = kwargs if kwargs is not None else {}
         self._validate_required_class_vars()
 
         cache_key = self._get_cache_key(**kwargs)
@@ -311,11 +286,7 @@ class JobtasticTask(Task):
             })
 
     def run(self, *args, **kwargs):
-        if get_task_logger:
-            self.logger = get_task_logger(self.__class__.__name__)
-        else:
-            # Celery 2.X fallback
-            self.logger = self.get_logger(**kwargs)
+        self.logger = get_task_logger(self.__module__)
         self.logger.info("Starting %s", self.__class__.__name__)
 
         self.cache_key = self._get_cache_key(**kwargs)
@@ -401,16 +372,14 @@ class JobtasticTask(Task):
     def _break_thundering_herd_cache(self):
         self.cache.delete('herd:%s' % self.cache_key)
 
-    @classmethod
     def _get_cache(self):
         """
         Return the cache to use for thundering herd protection, etc.
         """
-        if not self._cache:
+        if self._cache is None:
             self._cache = get_cache(self.app)
         return self._cache
 
-    @classmethod
     def _set_cache(self, cache):
         """
         Set the Jobtastic Cache for the Task
@@ -420,7 +389,7 @@ class JobtasticTask(Task):
         """
         self._cache = cache
 
-    cache = class_property(_get_cache, _set_cache)
+    cache = property(_get_cache, _set_cache)
 
     @classmethod
     def _get_cache_key(self, **kwargs):

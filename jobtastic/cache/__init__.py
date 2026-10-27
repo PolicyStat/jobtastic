@@ -1,4 +1,6 @@
-from celery.backends import get_backend_by_url
+# coding: utf-8
+
+from celery.app.backends import by_url
 from celery.backends.cache import CacheBackend
 from celery.backends.redis import RedisBackend
 from .base import BaseCache, WrappedCache
@@ -41,7 +43,9 @@ def get_cache(app):
             Memcache or Redis, then use that
     Otherwise fail
     """
-    jobtastic_cache_setting = app.conf.get('JOBTASTIC_CACHE')
+    jobtastic_cache_setting = app.conf.get('jobtastic_cache')
+    if jobtastic_cache_setting is None:
+        jobtastic_cache_setting = app.conf.get('JOBTASTIC_CACHE')
     if isinstance(jobtastic_cache_setting, BaseCache):
         return jobtastic_cache_setting
 
@@ -50,13 +54,14 @@ def get_cache(app):
             try:
                 return WrappedCache(get_django_cache(jobtastic_cache_setting))
             except InvalidCacheBackendError:
-                pass
+                if '://' not in jobtastic_cache_setting:
+                    raise
         else:
             return WrappedCache(get_django_cache('default'))
 
     if 'Werkzeug' in CACHES:
         if jobtastic_cache_setting:
-            backend, url = get_backend_by_url(jobtastic_cache_setting)
+            backend, url = by_url(jobtastic_cache_setting, loader=app.loader)
             backend = backend(app=app, url=url)
         else:
             backend = app.backend

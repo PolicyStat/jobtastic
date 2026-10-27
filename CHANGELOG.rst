@@ -3,7 +3,16 @@ Changelog
 
 dev
 ---
-* N/A
+* Begin the experimental private ``3.0.0+policystat.1`` migration targeting
+  Celery 5.4.0 and Python >=3.8 only.
+* Use registered task instances for dispatch helpers and instance-local cache
+  access; preserve the class-scoped cache-key configuration helpers.
+* Replace removed Celery imports and retain progress, eager persistence, and
+  broker-fallback return contracts.
+* Accept normalized and namespaced cache configuration and reject invalid
+  Django cache aliases explicitly.
+* Add a focused Celery 5.4 regression suite. Legacy-suite migration and real
+  worker/backend validation remain required before release.
 
 2.1.0
 -------

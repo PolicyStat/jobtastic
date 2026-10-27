@@ -1,5 +1,51 @@
 # jobtastic- Celery tasks plus more awesome
 
+## Experimental PolicyStat Celery 5.4 migration
+
+This branch uses private version `3.0.0+policystat.1` and requires exactly
+Celery 5.4.0 and Python 3.8 or newer. It is not compatible with Celery 4 and
+is not an upstream Jobtastic 3.0 release.
+
+Dispatch helpers and cache access now require a registered task **instance**,
+not a task class. Preserve classes for inheritance and register concrete tasks
+with explicit, unique message names:
+
+```python
+from my_app.celery import app
+
+LotsOfDivisionTask.name = 'my_app.tasks.LotsOfDivisionTask'
+lots_of_division_task = app.register_task(LotsOfDivisionTask())
+result = lots_of_division_task.delay_or_fail(
+    numerators=[2, 4],
+    denominators=[1, 2],
+)
+```
+
+Register once during application initialization and import that canonical
+instance at call sites. Do not register abstract bases. Give every concrete
+subclass its own name instead of inheriting a registered parent's name.
+Existing class-level dispatch examples below describe the legacy API; use the
+registered instance in their place. `delay_or_run` is retained and still returns
+the `(result, required_fallback)` pair.
+
+Cache configuration accepts `jobtastic_cache`, legacy `JOBTASTIC_CACHE`, and
+`CELERY_JOBTASTIC_CACHE` with Celery's `namespace='CELERY'` configuration.
+Invalid Django cache aliases raise an error instead of selecting another cache.
+
+For the focused Celery 5.4 regression suite, run inside the approved VM from
+this checkout using its Python environment with Django 3.2.25 installed:
+
+```sh
+python -m unittest jobtastic.tests.test_celery54
+```
+
+This suite covers the initial instance-API migration. It does not replace the
+legacy suite, which still needs migration, or validate real Redis, worker,
+concurrency, Beat, or Python 3.10 behavior. In particular, the legacy optional
+Werkzeug cache adapters have not been modernized. No release wheel should be
+built from this initial pass. PolicyStat callers and its other Celery
+dependencies must migrate before application startup can be considered working.
+
 [![Build Status](https://travis-ci.org/PolicyStat/jobtastic.png?branch=master)](https://travis-ci.org/PolicyStat/jobtastic)
 
 Jobtastic makes your user-responsive long-running

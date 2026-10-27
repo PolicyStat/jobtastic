@@ -15,8 +15,7 @@ CLASSIFIERS = [
     'Topic :: System :: Distributed Computing',
     'Topic :: Software Development :: Object Brokering',
     'Programming Language :: Python',
-    'Programming Language :: Python :: 2.6',
-    'Programming Language :: Python :: 2.7',
+    'Programming Language :: Python :: 3',
     'Operating System :: OS Independent',
     'Operating System :: POSIX',
     'Operating System :: Microsoft :: Windows',
@@ -136,6 +135,7 @@ class RunDjangoTests(Command):
 setup(
     name=NAME,
     version=meta['VERSION'],
+    python_requires='>=3.8',
     description=meta['doc'],
     author=meta['author'],
     author_email=meta['contact'],
